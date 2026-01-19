@@ -9,7 +9,7 @@ import { Users, UserCheck, Clock, Lock } from 'lucide-react';
 export default function DashboardPage() {
     const { data: analytics } = useQuery({
         queryKey: ['analytics'],
-        queryFn: () => analyticsApi.revenue(),
+        queryFn: () => analyticsApi.getRevenue(),
     });
 
     const { data: tenants } = useQuery({
@@ -107,8 +107,8 @@ export default function DashboardPage() {
                                         <p className="text-sm text-gray-600">{tenant.contact_email}</p>
                                     </div>
                                     <span className={`px-3 py-1 rounded-full text-sm ${tenant.status === 'active' ? 'bg-green-100 text-green-700' :
-                                            tenant.status === 'trial' ? 'bg-yellow-100 text-yellow-700' :
-                                                'bg-gray-100 text-gray-700'
+                                        tenant.status === 'trial' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-gray-100 text-gray-700'
                                         }`}>
                                         {tenant.status}
                                     </span>

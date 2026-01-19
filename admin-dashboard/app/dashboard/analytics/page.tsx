@@ -10,7 +10,7 @@ import { RevenueChart } from '@/components/analytics/revenue-chart';
 export default function AnalyticsPage() {
     const { data, isLoading } = useQuery({
         queryKey: ['analytics'],
-        queryFn: () => analyticsApi.revenue(),
+        queryFn: () => analyticsApi.getRevenue(),
     });
 
     if (isLoading) {
