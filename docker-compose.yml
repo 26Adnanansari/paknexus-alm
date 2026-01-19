@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # Local PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: almsaas-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: control_plane
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./app/db/master_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    networks:
+      - almsaas-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # FastAPI Application
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: almsaas-api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOCAL_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/control_plane
+      - MASTER_DATABASE_URL=${MASTER_DATABASE_URL:-}
+      - VAULT_MASTER_KEY=${VAULT_MASTER_KEY}
+      - SECRET_KEY=${SECRET_KEY:-changeme}
+      - APP_DOMAIN=${APP_DOMAIN:-localhost}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:3001}
+      # NeonDB API Configuration
+      - NEONDB_API_KEY=${NEONDB_API_KEY:-}
+      - NEONDB_PROJECT_ID=${NEONDB_PROJECT_ID:-}
+      - NEONDB_HOST=${NEONDB_HOST:-}
+      - NEONDB_USER=${NEONDB_USER:-}
+      - NEONDB_PASSWORD=${NEONDB_PASSWORD:-}
+    volumes:
+      - ./app:/app/app
+      - ./.env:/app/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - almsaas-network
+    restart: unless-stopped
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: almsaas-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - almsaas-network
+    restart: unless-stopped
+
+  # Admin Dashboard
+  admin-dashboard:
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    container_name: almsaas-admin
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-secret}
+      - NEXT_PUBLIC_APP_DOMAIN=${APP_DOMAIN:-localhost}
+    depends_on:
+      - api
+    networks:
+      - almsaas-network
+    restart: unless-stopped
+
+  # Tenant App
+  tenant-app:
+    build:
+      context: ./tenant-app
+      dockerfile: Dockerfile
+    container_name: almsaas-tenant-app
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_APP_DOMAIN=${APP_DOMAIN:-localhost}
+    depends_on:
+      - api
+    networks:
+      - almsaas-network
+    restart: unless-stopped
+
+networks:
+  almsaas-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
