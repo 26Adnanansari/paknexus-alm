@@ -39,9 +39,9 @@ export default function Home() {
     <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
-      <main className="pt-24 pb-20 px-6">
+      <main className="pt-20 pb-12 px-4 md:px-6">
         {/* Hero Section */}
-        <section className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center pt-24 mb-40">
+        <section className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 md:gap-16 items-center pt-12 mb-20 md:pt-24 md:mb-40">
           <motion.div
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -51,20 +51,20 @@ export default function Home() {
               <Zap className="h-4 w-4" />
               <span>Powered by PakAi Nexus AI</span>
             </div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-8 leading-tight">
+            <h1 className="text-3xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 md:mb-8 leading-tight">
               Elevating <span className="gradient-text">Education</span> Standard.
             </h1>
-            <p className="text-xl text-muted-foreground mb-10 max-w-xl leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 md:mb-10 max-w-xl leading-relaxed">
               Welcome to <strong>{branding?.name || 'PakAi Nexus'}</strong>. We provide a state-of-the-art digital environment for students, teachers, and parents to collaborate and excel.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <a href="/dashboard" className="px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-bold premium-shadow hover:scale-105 transition-all flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <a href="/dashboard" className="px-6 py-3 h-14 md:h-auto md:px-8 md:py-4 bg-primary text-primary-foreground rounded-2xl font-bold premium-shadow hover:scale-105 transition-all flex items-center justify-center space-x-2 w-full sm:w-auto">
                 <span>Go to Dashboard</span>
                 <ArrowRight className="h-5 w-5" />
               </a>
               <button
                 onClick={() => setIsSignupOpen(true)}
-                className="px-8 py-4 bg-white dark:bg-slate-800 border-2 border-border rounded-2xl font-bold hover:bg-muted transition-all"
+                className="px-6 py-3 h-14 md:h-auto md:px-8 md:py-4 bg-white dark:bg-slate-800 border-2 border-border rounded-2xl font-bold hover:bg-muted transition-all w-full sm:w-auto"
               >
                 Start Free Trial
               </button>
@@ -85,7 +85,7 @@ export default function Home() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="relative bg-white rounded-[32px] shadow-2xl w-full max-w-lg p-8 overflow-y-auto max-h-[90vh]"
+                className="relative bg-white rounded-[32px] shadow-2xl w-full max-w-lg p-6 md:p-8 overflow-y-auto max-h-[90vh]"
               >
                 <button
                   onClick={() => setIsSignupOpen(false)}
@@ -102,34 +102,34 @@ export default function Home() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="relative"
+            className="relative mt-8 lg:mt-0"
           >
             {/* Decorative Blob */}
-            <div className="absolute -top-20 -left-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-700" />
+            <div className="absolute -top-10 -left-10 md:-top-20 md:-left-20 w-48 h-48 md:w-64 md:h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute -bottom-10 -right-10 md:-bottom-20 md:-right-20 w-48 h-48 md:w-64 md:h-64 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-700" />
 
-            <div className="glass rounded-[2rem] p-8 relative overflow-hidden aspect-square flex flex-col items-center justify-center text-center">
-              <div className="bg-primary/5 p-8 rounded-full mb-8">
+            <div className="glass rounded-[2rem] p-6 md:p-8 relative overflow-hidden aspect-square flex flex-col items-center justify-center text-center">
+              <div className="bg-primary/5 p-6 md:p-8 rounded-full mb-6 md:mb-8">
                 {branding?.logo_url ? (
-                  <img src={branding.logo_url} alt="Logo" className="w-48 h-auto" />
+                  <img src={branding.logo_url} alt="Logo" className="w-32 md:w-48 h-auto" />
                 ) : (
-                  <Globe className="w-32 h-32 text-primary animate-spin-slow" />
+                  <Globe className="w-24 h-24 md:w-32 md:h-32 text-primary animate-spin-slow" />
                 )}
               </div>
-              <h2 className="text-3xl font-bold mb-4">{branding?.name || 'PakAi Nexus'}</h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">{branding?.name || 'PakAi Nexus'}</h2>
               <p className="text-muted-foreground max-w-xs">{branding?.website || 'Official School Portal'}</p>
             </div>
           </motion.div>
         </section>
 
         {/* Features Grid */}
-        <section className="max-w-7xl mx-auto mb-32">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Core Modules</h2>
-            <p className="text-muted-foreground">Everything you need to manage your institution efficiently.</p>
+        <section className="max-w-7xl mx-auto mb-20 md:mb-32">
+          <div className="text-center mb-10 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Core Modules</h2>
+            <p className="text-muted-foreground px-4">Everything you need to manage your institution efficiently.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             {features.map((f, i) => (
               <motion.div
                 key={i}
@@ -137,13 +137,13 @@ export default function Home() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="glass p-8 rounded-3xl group hover:border-primary/50 transition-all cursor-default"
+                className="glass p-6 md:p-8 rounded-3xl group hover:border-primary/50 transition-all cursor-default"
               >
                 <div className={`${f.bg} p-4 rounded-2xl w-fit mb-6 group-hover:scale-110 transition-transform`}>
                   <f.icon className={`h-8 w-8 ${f.color}`} />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 group-hover:text-primary transition-colors">{f.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{f.desc}</p>
+                <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 group-hover:text-primary transition-colors">{f.title}</h3>
+                <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{f.desc}</p>
               </motion.div>
             ))}
           </div>

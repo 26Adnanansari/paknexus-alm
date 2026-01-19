@@ -14,7 +14,8 @@ import {
     Search,
     Menu,
     X,
-    LogOut
+    LogOut,
+    Camera
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -44,6 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { icon: GraduationCap, label: "Teachers", path: "/dashboard/teachers" },
         { icon: Calendar, label: "Attendance", path: "/dashboard/attendance" },
         { icon: BookOpen, label: "Curriculum", path: "/dashboard/curriculum" },
+        { icon: Camera, label: "Moments", path: "/dashboard/moments" },
         { icon: Settings, label: "Settings", path: "/dashboard/settings" },
     ];
 
@@ -127,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <NavButton icon={TrendingUp} label="Home" active={isActive('/dashboard')} onClick={() => router.push('/dashboard')} />
                 <NavButton icon={Users} label="Students" active={isActive('/dashboard/students')} onClick={() => router.push('/dashboard/students')} />
                 <NavButton icon={Calendar} label="Attend" active={isActive('/dashboard/attendance')} onClick={() => router.push('/dashboard/attendance')} />
-                <NavButton icon={Settings} label="Settings" active={isActive('/dashboard/settings')} onClick={() => router.push('/dashboard/settings')} />
+                <NavButton icon={Camera} label="Moments" active={isActive('/dashboard/moments')} onClick={() => router.push('/dashboard/moments')} />
             </nav>
 
             {/* Slide-out Mobile Menu Sidebar Overlay */}

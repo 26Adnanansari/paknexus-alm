@@ -104,3 +104,9 @@ app.include_router(students.router, prefix=f"{settings.API_V1_STR}/students", ta
 app.include_router(staff.router, prefix=f"{settings.API_V1_STR}/staff", tags=["staff"])
 app.include_router(attendance.router, prefix=f"{settings.API_V1_STR}/attendance", tags=["attendance"])
 app.include_router(curriculum.router, prefix=f"{settings.API_V1_STR}/curriculum", tags=["curriculum"])
+
+from app.api.v1 import refunds
+app.include_router(refunds.router, prefix=f"{settings.API_V1_STR}/refunds", tags=["refunds"])
+
+from app.api.v1 import moments
+app.include_router(moments.router, prefix=f"{settings.API_V1_STR}/moments", tags=["moments"])

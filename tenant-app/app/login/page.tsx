@@ -51,24 +51,24 @@ export default function LoginPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="relative w-full max-w-md p-4"
+                className="relative w-full max-w-md mx-4"
             >
                 {/* Glassmorphism Card */}
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl p-8 md:p-10 relative overflow-hidden">
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl p-6 md:p-10 relative overflow-hidden">
 
                     {/* Decorative shine effect */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-                    <div className="text-center mb-10">
+                    <div className="text-center mb-8 md:mb-10">
                         <motion.div
                             initial={{ scale: 0.5, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             transition={{ delay: 0.2 }}
-                            className="bg-gradient-to-br from-blue-500 to-indigo-600 h-16 w-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20"
+                            className="bg-gradient-to-br from-blue-500 to-indigo-600 h-14 w-14 md:h-16 md:w-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20"
                         >
-                            <School className="text-white h-8 w-8" />
+                            <School className="text-white h-7 w-7 md:h-8 md:w-8" />
                         </motion.div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight">Welcome Back</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Welcome Back</h1>
                         <p className="text-slate-400 mt-2 text-sm">Sign in to manage your school</p>
                     </div>
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 py-3 text-base text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
                                     placeholder="admin@school.com"
                                 />
                             </div>
@@ -103,7 +103,7 @@ export default function LoginPage() {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 py-3 text-base text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
                                     placeholder="••••••••"
                                 />
                             </div>
