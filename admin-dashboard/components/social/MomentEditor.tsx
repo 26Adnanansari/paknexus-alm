@@ -50,8 +50,35 @@ export default function MomentEditor({ orderId, onSuccess }: MomentEditorProps) 
         }
     };
 
+    const uploadToCloudinary = async (file: File): Promise<string> => {
+        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+        if (!cloudName || !uploadPreset) {
+            throw new Error("Cloudinary configuration missing");
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", uploadPreset);
+
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error?.message || "Image upload failed");
+        }
+
+        const data = await res.json();
+        return data.secure_url;
+    };
+
     const onSubmit = async (data: any) => {
-        if (!image) {
+        const fileInput = (document.getElementById('file-upload') as HTMLInputElement)?.files?.[0];
+        if (!fileInput && !image) {
             setError("Please upload an image first.");
             return;
         }
@@ -60,23 +87,41 @@ export default function MomentEditor({ orderId, onSuccess }: MomentEditorProps) 
         setError('');
 
         try {
+            let uploadedUrl = image;
+
+            // Only upload if verified file object (not just preview URL)
+            // Ideally we store file in state, but accessing via DOM is okay for now or we update state
+            if (fileInput) {
+                uploadedUrl = await uploadToCloudinary(fileInput);
+            }
+
             const payload = {
                 ...data,
-                image_url: image, // In real app, this is the S3 URL
+                image_url: uploadedUrl,
                 order_id: orderId
             };
 
             console.log("Submitting Moment:", payload);
 
-            // Simulate API call
-            // const res = await fetch('/api/proxy/moments', { method: 'POST', body: JSON.stringify(payload) });
+            // Real API Call
+            const token = (window as any).__NEXT_DATA__?.props?.pageProps?.session?.accessToken;
 
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/moments/`, {
+                method: 'POST',
+                body: JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!res.ok) throw new Error("Failed to post");
 
             if (onSuccess) onSuccess(payload);
 
-        } catch (err) {
-            setError("Failed to share moment. Try again.");
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || "Failed to share moment. Try again.");
         } finally {
             setLoading(false);
         }

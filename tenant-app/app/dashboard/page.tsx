@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '@/lib/api';
 import { useSession } from 'next-auth/react';
+import KarmaCard from '@/components/karma/KarmaCard';
 
 export default function Dashboard() {
     const { branding } = useBranding();
@@ -73,7 +74,8 @@ export default function Dashboard() {
             </motion.div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <KarmaCard />
                 {stats.map((stat, i) => (
                     <StatCard key={stat.label} {...stat} delay={i * 0.1} />
                 ))}
