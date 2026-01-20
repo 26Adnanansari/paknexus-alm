@@ -39,32 +39,35 @@ export default function Home() {
     <div className="min-h-screen bg-background selection:bg-primary/20">
       <Navbar />
 
-      <main className="pt-20 pb-12 px-4 md:px-6">
+      <main className="pt-20 pb-8 px-4 md:px-6">
         {/* Hero Section */}
-        <section className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-10 md:gap-16 items-center pt-12 mb-20 md:pt-24 md:mb-40">
+        <section className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 md:gap-16 items-center pt-8 mb-12 md:pt-24 md:mb-40">
           <motion.div
             initial={{ x: -50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-primary/10 rounded-full text-primary text-sm font-bold mb-6">
-              <Zap className="h-4 w-4" />
+            <div className="inline-flex items-center space-x-2 px-3 py-1 bg-primary/10 rounded-full text-primary text-xs md:text-sm font-bold mb-4 md:mb-6">
+              <Zap className="h-3 w-3 md:h-4 md:w-4" />
               <span>Powered by PakAi Nexus AI</span>
             </div>
-            <h1 className="text-3xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 md:mb-8 leading-tight">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-8 leading-tight">
               Elevating <span className="gradient-text">Education</span> Standard.
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 md:mb-10 max-w-xl leading-relaxed">
+            <p className="text-base md:text-xl text-muted-foreground mb-6 md:mb-10 max-w-xl leading-relaxed">
               Welcome to <strong>{branding?.name || 'PakAi Nexus'}</strong>. We provide a state-of-the-art digital environment for students, teachers, and parents to collaborate and excel.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <a href="/dashboard" className="px-6 py-3 h-14 md:h-auto md:px-8 md:py-4 bg-primary text-primary-foreground rounded-2xl font-bold premium-shadow hover:scale-105 transition-all flex items-center justify-center space-x-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+              <button
+                onClick={() => window.location.href = '/login'}
+                className="px-6 py-3 md:px-8 md:py-4 bg-primary text-primary-foreground rounded-xl md:rounded-2xl font-bold premium-shadow hover:scale-105 transition-all flex items-center justify-center space-x-2 w-full sm:w-auto text-sm md:text-base"
+              >
                 <span>Go to Dashboard</span>
-                <ArrowRight className="h-5 w-5" />
-              </a>
+                <ArrowRight className="h-4 w-4 md:h-5 md:w-5" />
+              </button>
               <button
                 onClick={() => setIsSignupOpen(true)}
-                className="px-6 py-3 h-14 md:h-auto md:px-8 md:py-4 bg-white dark:bg-slate-800 border-2 border-border rounded-2xl font-bold hover:bg-muted transition-all w-full sm:w-auto"
+                className="px-6 py-3 md:px-8 md:py-4 bg-white dark:bg-slate-800 border-2 border-border rounded-xl md:rounded-2xl font-bold hover:bg-muted transition-all w-full sm:w-auto text-sm md:text-base"
               >
                 Start Free Trial
               </button>
@@ -85,13 +88,13 @@ export default function Home() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="relative bg-white rounded-[32px] shadow-2xl w-full max-w-lg p-6 md:p-8 overflow-y-auto max-h-[90vh]"
+                className="relative bg-white rounded-[24px] md:rounded-[32px] shadow-2xl w-full max-w-lg p-5 md:p-8 overflow-y-auto max-h-[90vh]"
               >
                 <button
                   onClick={() => setIsSignupOpen(false)}
-                  className="absolute top-6 right-6 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+                  className="absolute top-4 right-4 md:top-6 md:right-6 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                 </button>
                 <SignupForm onClose={() => setIsSignupOpen(false)} />
               </motion.div>
@@ -108,28 +111,28 @@ export default function Home() {
             <div className="absolute -top-10 -left-10 md:-top-20 md:-left-20 w-48 h-48 md:w-64 md:h-64 bg-primary/20 rounded-full blur-3xl animate-pulse" />
             <div className="absolute -bottom-10 -right-10 md:-bottom-20 md:-right-20 w-48 h-48 md:w-64 md:h-64 bg-indigo-400/20 rounded-full blur-3xl animate-pulse delay-700" />
 
-            <div className="glass rounded-[2rem] p-6 md:p-8 relative overflow-hidden aspect-square flex flex-col items-center justify-center text-center">
-              <div className="bg-primary/5 p-6 md:p-8 rounded-full mb-6 md:mb-8">
+            <div className="glass rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 relative overflow-hidden aspect-square flex flex-col items-center justify-center text-center">
+              <div className="bg-primary/5 p-4 md:p-8 rounded-full mb-4 md:mb-8">
                 {branding?.logo_url ? (
-                  <img src={branding.logo_url} alt="Logo" className="w-32 md:w-48 h-auto" />
+                  <img src={branding.logo_url} alt="Logo" className="w-24 md:w-48 h-auto" />
                 ) : (
-                  <Globe className="w-24 h-24 md:w-32 md:h-32 text-primary animate-spin-slow" />
+                  <Globe className="w-16 h-16 md:w-32 md:h-32 text-primary animate-spin-slow" />
                 )}
               </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">{branding?.name || 'PakAi Nexus'}</h2>
-              <p className="text-muted-foreground max-w-xs">{branding?.website || 'Official School Portal'}</p>
+              <h2 className="text-xl md:text-3xl font-bold mb-2 md:mb-4">{branding?.name || 'PakAi Nexus'}</h2>
+              <p className="text-muted-foreground max-w-xs text-sm md:text-base">{branding?.website || 'Official School Portal'}</p>
             </div>
           </motion.div>
         </section>
 
         {/* Features Grid */}
-        <section className="max-w-7xl mx-auto mb-20 md:mb-32">
-          <div className="text-center mb-10 md:mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Core Modules</h2>
-            <p className="text-muted-foreground px-4">Everything you need to manage your institution efficiently.</p>
+        <section className="max-w-7xl mx-auto mb-12 md:mb-32">
+          <div className="text-center mb-8 md:mb-16">
+            <h2 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4">Core Modules</h2>
+            <p className="text-sm md:text-base text-muted-foreground px-4">Everything you need to manage your institution efficiently.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-8">
             {features.map((f, i) => (
               <motion.div
                 key={i}
@@ -137,32 +140,32 @@ export default function Home() {
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="glass p-6 md:p-8 rounded-3xl group hover:border-primary/50 transition-all cursor-default"
+                className="glass p-5 md:p-8 rounded-2xl md:rounded-3xl group hover:border-primary/50 transition-all cursor-default"
               >
-                <div className={`${f.bg} p-4 rounded-2xl w-fit mb-6 group-hover:scale-110 transition-transform`}>
-                  <f.icon className={`h-8 w-8 ${f.color}`} />
+                <div className={`${f.bg} p-3 md:p-4 rounded-xl md:rounded-2xl w-fit mb-4 md:mb-6 group-hover:scale-110 transition-transform`}>
+                  <f.icon className={`h-6 w-6 md:h-8 md:w-8 ${f.color}`} />
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 group-hover:text-primary transition-colors">{f.title}</h3>
+                <h3 className="text-lg md:text-2xl font-bold mb-2 md:mb-4 group-hover:text-primary transition-colors">{f.title}</h3>
                 <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{f.desc}</p>
               </motion.div>
             ))}
           </div>
         </section>
 
-        {/* Trust Banner */}
-        <section className="max-w-5xl mx-auto bg-slate-900 text-white rounded-[3rem] p-12 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/30 rounded-full blur-3xl -mr-32 -mt-32" />
+        {/* Trust Banner - Reduced Padding for Mobile */}
+        <section className="max-w-5xl mx-auto bg-slate-900 text-white rounded-[2rem] md:rounded-[3rem] p-6 md:p-12 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 md:w-64 md:h-64 bg-primary/30 rounded-full blur-3xl -mr-16 -mt-16 md:-mr-32 md:-mt-32" />
 
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 text-center md:text-left">
             <div>
-              <div className="flex items-center space-x-2 text-indigo-400 font-bold mb-4">
-                <ShieldCheck className="h-5 w-5" />
+              <div className="flex items-center justify-center md:justify-start space-x-2 text-indigo-400 font-bold mb-3 md:mb-4 text-sm md:text-base">
+                <ShieldCheck className="h-4 w-4 md:h-5 md:w-5" />
                 <span>Advanced Security</span>
               </div>
-              <h2 className="text-4xl font-extrabold mb-4">Your Data, Protected.</h2>
-              <p className="text-slate-400 max-w-sm">We use enterprise-grade encryption and isolated database schemas to ensure your school's privacy.</p>
+              <h2 className="text-2xl md:text-4xl font-extrabold mb-3 md:mb-4">Your Data, Protected.</h2>
+              <p className="text-slate-400 max-w-sm text-sm md:text-base mx-auto md:mx-0">We use enterprise-grade encryption and isolated database schemas to ensure your school's privacy.</p>
             </div>
-            <button className="px-10 py-5 bg-white text-slate-900 rounded-2xl font-black text-lg hover:scale-105 transition-all shadow-2xl">
+            <button className="px-6 py-4 md:px-10 md:py-5 bg-white text-slate-900 rounded-xl md:rounded-2xl font-black text-sm md:text-lg hover:scale-105 transition-all shadow-2xl w-full md:w-auto">
               Request Audit 🔐
             </button>
           </div>

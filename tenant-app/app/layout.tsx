@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import ChatWidget from "@/components/nexus/ChatWidget";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +22,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           {children}
+          <ChatWidget />
         </Providers>
       </body>
     </html>
