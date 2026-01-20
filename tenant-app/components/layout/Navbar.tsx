@@ -4,11 +4,12 @@ import React from 'react';
 import { useBranding } from '@/context/branding-context';
 import { motion } from 'framer-motion';
 import { GraduationCap, LogIn, Menu, X } from 'lucide-react';
-
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Navbar() {
-    const { branding } = useBranding();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { branding } = useBranding() as any;
     const router = useRouter();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
@@ -26,7 +27,15 @@ export default function Navbar() {
                 <div className="max-w-7xl mx-auto glass rounded-2xl px-4 py-2 md:px-6 md:py-3 flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         {branding?.logo_url ? (
-                            <img src={branding.logo_url} alt="Logo" className="h-8 md:h-10 w-auto" />
+                            <div className="relative h-8 w-8 md:h-10 md:w-10">
+                                <Image
+                                    src={branding.logo_url}
+                                    alt="Logo"
+                                    fill
+                                    className="object-contain"
+                                    sizes="(max-width: 768px) 32px, 40px"
+                                />
+                            </div>
                         ) : (
                             <div className="bg-primary/10 p-2 rounded-xl">
                                 <GraduationCap className="h-5 w-5 md:h-6 md:w-6 text-primary" />

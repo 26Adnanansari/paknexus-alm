@@ -19,7 +19,8 @@ import { Eye, CheckCircle } from 'lucide-react';
 import { tenantsApi } from '@/lib/api';
 
 interface TenantTableProps {
-    tenants: any[];
+    tenants: Tenant[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     pagination?: any;
     isLoading: boolean;
     onPageChange: (page: number) => void;
@@ -140,7 +141,7 @@ export function TenantTable({ tenants, pagination, isLoading, onPageChange }: Te
                                                     try {
                                                         await tenantsApi.activate(tenant.tenant_id, 'MANUAL_APPROVAL', 'Activated from Dashboard');
                                                         window.location.reload(); // Simple reload to refresh data
-                                                    } catch (e) {
+                                                    } catch (_) {
                                                         alert('Failed to activate tenant');
                                                     }
                                                 }

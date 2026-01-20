@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Receipt, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Receipt, ArrowRight, CheckCircle2 } from 'lucide-react';
 import api from '@/lib/api';
 
 interface RefundTier {

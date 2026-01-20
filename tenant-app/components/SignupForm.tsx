@@ -1,12 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 import { Loader2, CheckCircle2, AlertCircle, School, Globe, Mail, Lock, Phone } from 'lucide-react';
 
 export default function SignupForm({ onClose }: { onClose: () => void }) {
-    const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
@@ -35,10 +33,12 @@ export default function SignupForm({ onClose }: { onClose: () => void }) {
                 throw new Error("Subdomain must be lowercase letters, numbers, and hyphens only.");
             }
 
-            const res = await api.post('/public/register', formData);
+            await api.post('/public/register', formData);
             setSuccess(true);
-        } catch (err: any) {
-            setError(err.response?.data?.detail || err.message || "Registration failed. Please try again.");
+        } catch (err: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const errorMessage = (err as any).response?.data?.detail || (err as Error).message || "Registration failed. Please try again.";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }

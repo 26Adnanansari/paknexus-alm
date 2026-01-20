@@ -114,6 +114,7 @@ export default function Home() {
             <div className="glass rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 relative overflow-hidden aspect-square flex flex-col items-center justify-center text-center">
               <div className="bg-primary/5 p-4 md:p-8 rounded-full mb-4 md:mb-8">
                 {branding?.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={branding.logo_url} alt="Logo" className="w-24 md:w-48 h-auto" />
                 ) : (
                   <Globe className="w-16 h-16 md:w-32 md:h-32 text-primary animate-spin-slow" />
@@ -163,7 +164,7 @@ export default function Home() {
                 <span>Advanced Security</span>
               </div>
               <h2 className="text-2xl md:text-4xl font-extrabold mb-3 md:mb-4">Your Data, Protected.</h2>
-              <p className="text-slate-400 max-w-sm text-sm md:text-base mx-auto md:mx-0">We use enterprise-grade encryption and isolated database schemas to ensure your school's privacy.</p>
+              <p className="text-slate-400 max-w-sm text-sm md:text-base mx-auto md:mx-0">We use enterprise-grade encryption and isolated database schemas to ensure your school&apos;s privacy.</p>
             </div>
             <button className="px-6 py-4 md:px-10 md:py-5 bg-white text-slate-900 rounded-xl md:rounded-2xl font-black text-sm md:text-lg hover:scale-105 transition-all shadow-2xl w-full md:w-auto">
               Request Audit 🔐

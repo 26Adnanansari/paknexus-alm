@@ -22,6 +22,7 @@ export interface AuditLog {
     tenant_id: string;
     actor_id: string;
     action: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     details: Record<string, any>;
     created_at: string;
 }

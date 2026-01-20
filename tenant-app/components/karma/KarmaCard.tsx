@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Star, Medal, TrendingUp } from 'lucide-react';
-import api from '@/lib/api';
+import { Trophy, Star, TrendingUp } from 'lucide-react';
+// import api from '@/lib/api';
 
 interface Badge {
     name: string;
@@ -88,7 +88,7 @@ export default function KarmaCard() {
                         {loading ? (
                             [1, 2].map(i => <div key={i} className="w-10 h-10 rounded-full bg-white/20 animate-pulse" />)
                         ) : (
-                            stats.badges.map((b: any, i) => (
+                            stats.badges.map((b: Badge, i) => (
                                 <div key={i} className="w-10 h-10 rounded-full bg-white/10 border-2 border-purple-500 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform cursor-help" title={b.name}>
                                     <Star className="h-5 w-5 text-yellow-300 fill-yellow-300" />
                                 </div>

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Bot, Sparkles, ChevronDown } from 'lucide-react';
-import { useSession } from 'next-auth/react'; // Optional: Use session to personalize greeting
 import api from '@/lib/api';
 
 interface Message {
@@ -49,7 +48,7 @@ export default function ChatWidget() {
             console.error("Nexus Error:", error);
             setMessages(prev => [...prev, {
                 role: 'assistant',
-                content: "I'm having trouble connecting to the school servers right now. Please try again later."
+                content: "I am having trouble connecting to the school servers right now. Please try again later."
             }]);
         } finally {
             setLoading(false);

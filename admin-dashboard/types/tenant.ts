@@ -7,6 +7,9 @@ export interface Tenant {
     status: 'active' | 'trial' | 'suspended' | 'churned' | 'locked' | 'grace';
     trial_start?: string;
     subscription_expiry: string;
+    days_remaining?: number;
+    last_payment_date?: string;
+    payment_method?: string;
 
     // Branding
     logo_url?: string;

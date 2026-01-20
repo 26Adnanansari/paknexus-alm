@@ -1,6 +1,6 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
-import axios from "axios"
+
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     providers: [
@@ -14,21 +14,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 try {
                     if (!credentials?.username || !credentials?.password) return null;
 
-                    const res = await axios.post(
+                    const res = await fetch(
                         `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/login/access-token`,
-                        new URLSearchParams({
-                            username: credentials.username as string,
-                            password: credentials.password as string,
-                        }), {
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                    }
+                        {
+                            method: "POST",
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({
+                                username: credentials.username as string,
+                                password: credentials.password as string,
+                            }).toString(),
+                        }
                     );
 
-                    if (res.data.access_token) {
+                    const data = await res.json();
+
+                    if (data.access_token) {
                         return {
                             id: "current-user",
                             email: credentials.username as string,
-                            accessToken: res.data.access_token
+                            accessToken: data.access_token
                         };
                     }
                     return null;
@@ -42,12 +46,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 token.accessToken = (user as any).accessToken;
             }
             return token;
         },
         async session({ session, token }) {
             if (token.accessToken) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (session as any).accessToken = token.accessToken;
             }
             return session;

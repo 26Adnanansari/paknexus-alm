@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, FileText, ArrowUpRight, DollarSign } from 'lucide-react';
+import { CreditCard, FileText, DollarSign } from 'lucide-react';
 import RefundPolicyCard from '@/components/finance/RefundPolicyCard';
 import { useRouter } from 'next/navigation';
 

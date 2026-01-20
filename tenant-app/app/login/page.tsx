@@ -31,8 +31,8 @@ export default function LoginPage() {
             } else {
                 router.push('/dashboard');
             }
-        } catch (err) {
-            setError('Something went wrong. Please check your connection.');
+        } catch (_) {
+            setError("Invalid email or password");
         } finally {
             setLoading(false);
         }
