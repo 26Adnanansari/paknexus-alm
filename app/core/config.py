@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     # App Configuration
     APP_DOMAIN: str = Field(default="pakainexus.com", description="Base domain for tenant subdomains")
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+        default="http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://paknexus-alm-saas.vercel.app,https://paknexus-alm.vercel.app,https://paknexus-alm-admin.vercel.app",
         description="Comma-separated list of allowed CORS origins"
     )
     
