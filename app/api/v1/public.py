@@ -80,3 +80,56 @@ async def register_tenant(
         except Exception as e:
             # unique constraint violations etc
             raise HTTPException(status_code=400, detail=f"Registration failed: {str(e)}")
+@router.get("/branding", response_model=dict)
+async def get_public_branding(
+    domain: str,
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """
+    Fetch public branding info (logo, colors, name) by domain/subdomain.
+    Used by landing pages and login screens.
+    """
+    # Simple logic: if domain ends with configured base domain, extract subdomain
+    # For now, let's assume 'subdomain' is passed or we assume it's the full domain if custom.
+    # Actually, let's just lookup by subdomain OR custom domain.
+    
+    # Extract subdomain for standard tenants: school.paknexus-alm.vercel.app -> school
+    # For localhost, we might need a header or assume a default for dev?
+    
+    # Let's try to find exact match on 'subdomain' column first (assuming 'domain' param IS the subdomain)
+    # OR match 'website' or custom domain logic.
+    
+    subdomain = domain
+    if "." in domain:
+         # simplistic extraction: school.pakai... -> school
+         # But if it's localhost, it's just 'localhost'.
+         subdomain = domain.split(".")[0]
+
+    async with pool.acquire() as conn:
+        # Try finding by subdomain first
+        tenant = await conn.fetchrow(
+            """
+            SELECT name, logo_url, primary_color, secondary_color, website, address 
+            FROM tenants 
+            WHERE subdomain = $1
+            """, 
+            subdomain
+        )
+        
+        # If not found, maybe they passed the full host?
+        if not tenant:
+             tenant = await conn.fetchrow(
+                """
+                SELECT name, logo_url, primary_color, secondary_color, website, address 
+                FROM tenants 
+                WHERE subdomain = $1
+                """, 
+                domain # try exact match just in case
+            )
+            
+        if not tenant:
+            # Fallback for localhost dev if not found - return default/mock?
+            # Or 404. Let's return 404 so frontend can handle or show default.
+            raise HTTPException(status_code=404, detail="School not found")
+
+        return dict(tenant)

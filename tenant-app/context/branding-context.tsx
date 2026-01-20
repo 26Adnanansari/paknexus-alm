@@ -31,7 +31,13 @@ export const BrandingProvider = ({ children }: { children: React.ReactNode }) =>
     useEffect(() => {
         const fetchBranding = async () => {
             try {
-                const res = await api.get('/school/profile');
+                // Determine domain/subdomain to fetch branding
+                // In production: subdomain.pakainexus.com -> 'subdomain'
+                // In dev: localhost -> handle gracefully (maybe hardcode 'demo' or user has to map it)
+                const domain = window.location.hostname;
+
+                // Use public endpoint so we don't get 401s on login/landing
+                const res = await api.get(`/public/branding?domain=${domain}`);
                 setBranding(res.data);
 
                 // Apply colors to CSS variables

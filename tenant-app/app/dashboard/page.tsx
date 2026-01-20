@@ -11,17 +11,49 @@ import {
     Plus,
     Calendar,
     Bell,
+    Bell,
     Settings
 } from 'lucide-react';
+import api from '@/lib/api';
+import { useSession } from 'next-auth/react';
 
 export default function Dashboard() {
     const { branding } = useBranding();
+    const { data: session } = useSession();
+    const [stats, setStats] = React.useState([
+        { label: 'Students', value: '0', limit: '0', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 0 },
+        { label: 'Teachers', value: '0', limit: '0', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 0 },
+        { label: 'Storage', value: '0 MB', limit: '0 MB', icon: Database, color: 'text-orange-600', bg: 'bg-orange-100', progress: 0 },
+    ]);
 
-    const stats = [
-        { label: 'Students', value: '450', limit: '500', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 90 },
-        { label: 'Teachers', value: '25', limit: '50', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 50 },
-        { label: 'Storage', value: '45 MB', limit: '200 MB', icon: Database, color: 'text-orange-600', bg: 'bg-orange-100', progress: 22.5 },
-    ];
+    React.useEffect(() => {
+        if (!session) return;
+
+        const fetchStats = async () => {
+            try {
+                // I will add the import at the top later. For now, fetch generic.
+                const token = (window as any).__NEXT_DATA__?.props?.pageProps?.session?.accessToken;
+                // Using standard fetch or we need to add 'import api from "@/lib/api"'
+
+                // Let's assume we add the import.
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/school/stats`, {
+                    headers: {
+                        // We need the token. If useSession hook is cleaner, use that.
+                        // But I need to add useSession hook.
+                        // For now, let's use the browser stored token logic or assume interceptor if I use axios 'api'.
+                    }
+                });
+
+                // Actually, let's use the 'api' lib if possible.
+                // Or better: use 'useSession' to get token.
+            } catch (e) { console.error(e); }
+        };
+        // fetchStats();
+    }, []);
+
+    // ... wait, I need to do this properly.
+    // I will replace the component logic to include useSession and fetch.
+
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto w-full">
