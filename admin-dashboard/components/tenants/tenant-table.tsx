@@ -141,7 +141,7 @@ export function TenantTable({ tenants, pagination, isLoading, onPageChange }: Te
                                                     try {
                                                         await tenantsApi.activate(tenant.tenant_id, 'MANUAL_APPROVAL', 'Activated from Dashboard');
                                                         window.location.reload(); // Simple reload to refresh data
-                                                    } catch (_) {
+                                                    } catch {
                                                         alert('Failed to activate tenant');
                                                     }
                                                 }

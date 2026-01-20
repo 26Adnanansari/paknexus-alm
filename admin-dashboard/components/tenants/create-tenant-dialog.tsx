@@ -59,7 +59,7 @@ export function CreateTenantDialog({ open, onOpenChange }: CreateTenantDialogPro
                 contact_phone: '',
             });
         },
-        onError: (error: any) => {
+        onError: (error: Error) => {
             toast.error(error.message || 'Failed to create tenant');
         },
     });

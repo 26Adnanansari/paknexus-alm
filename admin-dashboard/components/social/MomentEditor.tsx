@@ -16,18 +16,17 @@ const momentSchema = z.object({
     status: z.enum(["DRAFT", "PUBLISHED"]),
 });
 
+type MomentFormValues = z.infer<typeof momentSchema>;
+
 interface MomentEditorProps {
     orderId?: string;
-    onSuccess?: (moment: any) => void;
+    onSuccess?: (moment: MomentFormValues) => void;
 }
 
 export default function MomentEditor({ orderId, onSuccess }: MomentEditorProps) {
     const [image, setImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
-    // Define the form type
-    type MomentFormValues = z.infer<typeof momentSchema>;
 
     const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<MomentFormValues>({
         resolver: zodResolver(momentSchema),
@@ -76,7 +75,7 @@ export default function MomentEditor({ orderId, onSuccess }: MomentEditorProps) 
         return data.secure_url;
     };
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: MomentFormValues) => {
         const fileInput = (document.getElementById('file-upload') as HTMLInputElement)?.files?.[0];
         if (!fileInput && !image) {
             setError("Please upload an image first.");
@@ -119,9 +118,10 @@ export default function MomentEditor({ orderId, onSuccess }: MomentEditorProps) 
 
             if (onSuccess) onSuccess(payload);
 
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            setError(err.message || "Failed to share moment. Try again.");
+            const message = err instanceof Error ? err.message : "Failed to share moment. Try again.";
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -139,6 +139,7 @@ export default function MomentEditor({ orderId, onSuccess }: MomentEditorProps) 
 
                             {image ? (
                                 <div className="relative w-full h-64">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={image} alt="Preview" className="w-full h-full object-contain rounded" />
                                     <button
                                         type="button"

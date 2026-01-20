@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Calendar } from 'lucide-react';
 import { tenantsApi } from '@/lib/api';
 import { toast } from 'react-hot-toast';
-import { format, addMonths, addDays } from 'date-fns';
+import { format, addDays } from 'date-fns';
 
 interface ExtendSubscriptionDialogProps {
     tenantId: string;
