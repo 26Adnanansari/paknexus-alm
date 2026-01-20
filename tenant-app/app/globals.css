@@ -48,25 +48,41 @@
 
 :root {
   --radius: 0.75rem;
+  
+  /* Brand Colors - WCAG AA Compliant */
+  --color-brand-blue: #4169E1;
+  --color-brand-purple: #8B3DFF;
+
+  /* Typography Scale - Fluid Clamp */
+  --font-h1: clamp(1.5rem, 5vw + 1rem, 3rem);      /* 24px -> 48px */
+  --font-h2: clamp(1.25rem, 3vw + 1rem, 2.25rem);  /* 20px -> 36px */
+  --font-h3: clamp(1.125rem, 2vw + 1rem, 1.875rem); /* 18px -> 30px */
+  --font-body: clamp(1rem, 1vw + 0.8rem, 1.125rem); /* 16px -> 18px */
+
+  /* Theme Colors - Mapped to Brand */
   --background: oklch(0.99 0.01 240);
   --foreground: oklch(0.2 0.02 240);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.02 240);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.02 240);
-  --primary: oklch(0.45 0.15 260);
-  /* Deep Indigo */
-  --primary-foreground: oklch(0.98 0.01 240);
-  --secondary: oklch(0.92 0.03 260);
-  --secondary-foreground: oklch(0.3 0.1 260);
-  --muted: oklch(0.95 0.01 240);
-  --muted-foreground: oklch(0.5 0.02 240);
-  --accent: oklch(0.9 0.05 260);
+  
+  /* Primary: Royal Blue variant standardized in OKLCH for consistency */
+  --primary: oklch(0.53 0.16 261); /* Matches #4169E1 approx */
+  --primary-foreground: oklch(1 0 0);
+  
+  /* Secondary: Purple variant */
+  --secondary: oklch(0.96 0.02 286); /* Light purple tint */
+  --secondary-foreground: oklch(0.45 0.20 286); /* Dark purple text */
+  
+  --muted: oklch(0.96 0.01 240);
+  --muted-foreground: oklch(0.55 0.03 240);
+  --accent: oklch(0.94 0.04 260);
   --accent-foreground: oklch(0.3 0.1 260);
   --destructive: oklch(0.6 0.18 25);
-  --border: oklch(0.9 0.02 240);
-  --input: oklch(0.9 0.02 240);
-  --ring: oklch(0.45 0.15 260);
+  --border: oklch(0.92 0.02 240);
+  --input: oklch(0.92 0.02 240);
+  --ring: oklch(0.53 0.16 261);
 }
 
 .dark {

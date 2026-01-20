@@ -1,7 +1,7 @@
 -- Order Moments Table
 CREATE TABLE IF NOT EXISTS order_moments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id) ON DELETE CASCADE,
     order_id UUID UNIQUE, -- Link to an order (Optional if we want generic moments too, but plan says order-linked)
     image_url TEXT NOT NULL,
     caption TEXT,

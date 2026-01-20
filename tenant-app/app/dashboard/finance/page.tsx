@@ -5,9 +5,18 @@ import { motion } from 'framer-motion';
 import { CreditCard, FileText, DollarSign } from 'lucide-react';
 import RefundPolicyCard from '@/components/finance/RefundPolicyCard';
 import { useRouter } from 'next/navigation';
+import { Camera } from 'lucide-react';
+import CreateMomentModal from '@/components/social/CreateMomentModal';
 
 export default function FinanceDashboard() {
     const router = useRouter();
+    const [isMomentModalOpen, setIsMomentModalOpen] = React.useState(false);
+    const [selectedOrderId, setSelectedOrderId] = React.useState<string | null>(null);
+
+    const handleOpenMomentModal = (orderId: string) => {
+        setSelectedOrderId(orderId);
+        setIsMomentModalOpen(true);
+    };
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 p-4 md:p-6 pb-24">
@@ -58,10 +67,42 @@ export default function FinanceDashboard() {
                             <h3 className="font-bold text-slate-900">Recent Transactions</h3>
                             <button className="text-blue-600 text-sm font-bold hover:underline">View All</button>
                         </div>
-                        <div className="bg-white border border-slate-200 rounded-2xl p-8 text-center text-slate-500 flex flex-col items-center justify-center">
-                            <FileText size={32} className="text-slate-300 mb-2" />
-                            <p>No transactions found.</p>
+                        <div className="bg-white border border-slate-200 rounded-2xl p-6">
+                            {/* Mock Transaction Item */}
+                            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl mb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-emerald-100 text-emerald-600 p-3 rounded-lg">
+                                        <FileText size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-slate-900">Term 1 Fees</div>
+                                        <div className="text-xs text-slate-500">Paid on Jan 15, 2024</div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-bold text-slate-900">$1,200.00</div>
+                                    <button
+                                        onClick={() => handleOpenMomentModal('ord_123')}
+                                        className="text-xs font-bold text-violet-600 hover:text-violet-700 mt-1 flex items-center gap-1"
+                                    >
+                                        <Camera size={12} />
+                                        <span>Share Moment</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="text-center text-slate-500 text-sm mt-4">
+                                <button className="text-blue-600 font-bold hover:underline">View All Transactions</button>
+                            </div>
                         </div>
+
+                        {selectedOrderId && (
+                            <CreateMomentModal
+                                isOpen={isMomentModalOpen}
+                                onClose={() => setIsMomentModalOpen(false)}
+                                orderId={selectedOrderId}
+                            />
+                        )}
                     </div>
                 </div>
 

@@ -11,7 +11,7 @@ api.interceptors.request.use(async (config) => {
 
     if (!token) {
         const session = await getSession();
-        // @ts-ignore
+        // @ts-expect-error - session type from next-auth/react is generic
         token = session?.accessToken as string;
     }
 

@@ -3,6 +3,7 @@ import logging
 import asyncpg
 from app.core.config import settings
 from app.core.database import get_master_db_pool
+from app.core.security import SecurityService
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -35,23 +36,52 @@ async def apply_karma_migration():
         tenant_name = tenant['name']
         logger.info(f"Migrating tenant: {tenant_name}...")
         
-        # Construct DB connection string for the tenant (Using service role / admin credentials)
-        # Assuming the connection info is stored or constructed similarly to TenantDatabaseFactory
-        # For this script, we'll try to use the project URL to derive the DSN if possible, 
-        # OR just use a known pattern if strictly defined. 
-        # However, looking at codebase, we usually use a Factory. 
-        # Let's try to simulate what TenantDatabaseFactory does or import it.
-        
-        # Since I can't easily see TenantDatabaseFactory internal logic for DSN construction right now without viewing it,
-        # I will check if I can import TenantDatabaseFactory and use `get_pool_for_tenant`.
-        
         try:
-            from app.core.database import TenantDatabaseFactory
+            dsn = None
+            schema_name = None
+            is_shared_schema = False
+
+            # Decrypt DSN
+            try:
+                decrypted_dsn = SecurityService.decrypt(tenant['supabase_project_url'])
+            except Exception as e:
+                logger.warning(f"Skipping {tenant_name}: Failed to decrypt DSN. Error: {e}")
+                continue
             
-            # This might create a pool only if it doesn't verify the DSN in a way that blocks us.
-            # Usually creates a pool based on tenant_id lookup or passed credentials.
-            # Let's attempt to use the factory.
-            tenant_pool = await TenantDatabaseFactory.get_pool_for_tenant(tenant['tenant_id'])
+            # Check for dummy values
+            if not decrypted_dsn or decrypted_dsn == 'pending' or decrypted_dsn.startswith('pending'):
+                 logger.warning(f"Skipping {tenant_name}: DSN is pending.")
+                 continue
+
+            # Handle shared schema isolation
+            if decrypted_dsn.startswith("shared_database_schema:"):
+                is_shared_schema = True
+                schema_name = decrypted_dsn.split(":")[1]
+                logger.info(f"  Using shared schema: {schema_name}")
+                dsn = settings.DATABASE_URL
+            else:
+                 dsn = decrypted_dsn
+
+            # Basic validation
+            if not dsn or not dsn.startswith('postgres'):
+                logger.warning(f"Skipping {tenant_name}: Invalid DSN format: {dsn[:10]}...")
+                continue
+
+            # Create pool with appropriate init function
+            init_func = None
+            if is_shared_schema and schema_name:
+                 # This init function runs on every new connection in the pool
+                 async def init_schema(conn):
+                     await conn.execute(f"SET search_path TO {schema_name}, public")
+                 init_func = init_schema
+
+            tenant_pool = await asyncpg.create_pool(
+                dsn,
+                min_size=1,
+                max_size=2,
+                command_timeout=30,
+                init=init_func
+            )
             
             async with tenant_pool.acquire() as tenant_conn:
                 await tenant_conn.execute(schema_sql)
@@ -64,6 +94,8 @@ async def apply_karma_migration():
                     ('Top Scorer', 'Achieve 90% or above in exams', 'Award', '{"grade": "A+"}')
                     ON CONFLICT (name) DO NOTHING;
                 """)
+            
+            await tenant_pool.close()
                 
             logger.info(f"Successfully migrated {tenant_name}")
             

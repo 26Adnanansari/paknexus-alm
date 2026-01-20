@@ -68,7 +68,7 @@ export function TenantTable({ tenants, pagination, isLoading, onPageChange }: Te
                             </div>
                             <div className="text-sm text-gray-600 space-y-1">
                                 <p>Expiry: {format(new Date(tenant.subscription_expiry), 'MMM dd, yyyy')}</p>
-                                <p className={tenant.days_remaining < 7 ? 'text-red-600 font-medium' : ''}>
+                                <p className={(tenant.days_remaining || 0) < 7 ? 'text-red-600 font-medium' : ''}>
                                     {tenant.days_remaining || 0} days remaining
                                 </p>
                             </div>
@@ -120,7 +120,7 @@ export function TenantTable({ tenants, pagination, isLoading, onPageChange }: Te
                                     {format(new Date(tenant.subscription_expiry), 'MMM dd, yyyy')}
                                 </TableCell>
                                 <TableCell>
-                                    <span className={tenant.days_remaining < 7 ? 'text-red-600 font-medium' : ''}>
+                                    <span className={(tenant.days_remaining || 0) < 7 ? 'text-red-600 font-medium' : ''}>
                                         {tenant.days_remaining || 0} days
                                     </span>
                                 </TableCell>

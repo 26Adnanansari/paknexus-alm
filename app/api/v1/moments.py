@@ -3,17 +3,17 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 
-from app.core.database import get_db
-from app.api.v1.auth import get_current_user
+from app.api.v1.deps import get_current_school_user, get_tenant_db_pool
 from app.models.moments import Moment, MomentCreate, MomentUpdate
+import asyncpg
 
 router = APIRouter()
 
 @router.post("/", response_model=Moment)
 async def create_moment(
     moment: MomentCreate,
-    current_user = Depends(get_current_user),
-    db = Depends(get_db)
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
     """
     Create a new social moment.
@@ -22,12 +22,12 @@ async def create_moment(
     if not tenant_id:
         raise HTTPException(status_code=400, detail="Tenant context required")
 
-    async with db.acquire() as conn:
+    async with pool.acquire() as conn:
         # Check if one already exists for this order if order_id is provided
         if moment.order_id:
             existing = await conn.fetchval(
                 "SELECT id FROM order_moments WHERE tenant_id = $1 AND order_id = $2",
-                UUID(tenant_id), moment.order_id
+                tenant_id, moment.order_id
             )
             if existing:
                 raise HTTPException(status_code=400, detail="Moment already exists for this order")
@@ -38,47 +38,49 @@ async def create_moment(
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *
             """,
-            UUID(tenant_id), moment.order_id, moment.image_url, moment.caption, moment.status
+            tenant_id, moment.order_id, moment.image_url, moment.caption, moment.status
         )
         return Moment(**dict(row))
 
 @router.get("/by-order/{order_id}", response_model=Optional[Moment])
 async def get_moment_by_order(
     order_id: UUID,
-    current_user = Depends(get_current_user),
-    db = Depends(get_db)
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
     """Get the moment associated with a specific order."""
     tenant_id = current_user.get("tenant_id")
     
-    row = await db.fetchrow(
-        "SELECT * FROM order_moments WHERE tenant_id = $1 AND order_id = $2",
-        UUID(tenant_id), order_id
-    )
-    
-    if not row:
-        return None
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM order_moments WHERE tenant_id = $1 AND order_id = $2",
+            tenant_id, order_id
+        )
         
-    return Moment(**dict(row))
+        if not row:
+            return None
+            
+        return Moment(**dict(row))
 
 @router.get("/", response_model=List[Moment])
 async def list_moments(
     skip: int = 0,
     limit: int = 20,
-    current_user = Depends(get_current_user),
-    db = Depends(get_db)
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
     """List most recent moments."""
     tenant_id = current_user.get("tenant_id")
     
-    rows = await db.fetch(
-        """
-        SELECT * FROM order_moments 
-        WHERE tenant_id = $1 
-        ORDER BY created_at DESC 
-        OFFSET $2 LIMIT $3
-        """,
-        UUID(tenant_id), skip, limit
-    )
-    
-    return [Moment(**dict(r)) for r in rows]
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT * FROM order_moments 
+            WHERE tenant_id = $1 
+            ORDER BY created_at DESC 
+            OFFSET $2 LIMIT $3
+            """,
+            tenant_id, skip, limit
+        )
+        
+        return [Moment(**dict(r)) for r in rows]
