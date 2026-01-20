@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Medal, Award, Crown } from 'lucide-react';
+import { Crown } from 'lucide-react';
 
 export default function KarmaPage() {
     // Mock Data for "Mobile Responsive" Demo

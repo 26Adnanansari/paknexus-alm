@@ -7,7 +7,7 @@ import { Loader2, Save, School } from 'lucide-react';
 import { useBranding } from '@/context/branding-context';
 
 export default function SettingsPage() {
-    const { branding, setBranding } = useBranding();
+    const { setBranding } = useBranding();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
@@ -59,7 +59,7 @@ export default function SettingsPage() {
             // Update global branding context
             if (setBranding) setBranding(res.data);
             alert('Settings updated successfully!');
-        } catch (error) {
+        } catch {
             alert('Failed to update settings');
         } finally {
             setSaving(false);

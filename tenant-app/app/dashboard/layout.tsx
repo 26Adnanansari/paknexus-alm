@@ -60,6 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 p-6 sticky top-0 h-screen z-40">
                 <div className="flex items-center gap-3 mb-10 cursor-pointer" onClick={() => router.push('/')}>
                     {branding?.logo_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={branding.logo_url} alt="Logo" className="w-10 h-10 object-contain" />
                     ) : (
                         <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold">PN</div>
@@ -194,6 +195,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function NavItem({ icon: Icon, label, active = false, onClick }: any) {
     return (
         <button
@@ -209,6 +211,7 @@ function NavItem({ icon: Icon, label, active = false, onClick }: any) {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function NavButton({ icon: Icon, label, active = false, onClick }: any) {
     return (
         <button onClick={onClick} className={`flex flex-col items-center justify-center gap-1 ${active ? 'text-blue-600' : 'text-slate-400'}`}>

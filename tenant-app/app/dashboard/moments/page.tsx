@@ -2,7 +2,7 @@
 
 import React from 'react';
 import MomentsFeed from '@/components/social/MomentsFeed';
-import { Camera } from 'lucide-react';
+
 
 export default function MomentsPage() {
     return (

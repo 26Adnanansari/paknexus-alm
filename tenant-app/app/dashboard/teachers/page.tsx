@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, User, Mail, Phone, School } from 'lucide-react';
+import { Plus, User, Mail, Phone, School } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function TeachersPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [teachers, setTeachers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -48,7 +49,7 @@ export default function TeachersPage() {
                 designation: 'Teacher', join_date: new Date().toISOString().split('T')[0]
             });
             fetchTeachers();
-        } catch (error) {
+        } catch {
             alert('Failed to add teacher');
         } finally {
             setSubmitting(false);

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, User, Filter, MoreHorizontal, GraduationCap } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, GraduationCap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StudentsPage() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -24,11 +25,7 @@ export default function StudentsPage() {
     });
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        fetchStudents();
-    }, [search]); // Debounce in production
-
-    const fetchStudents = async () => {
+    const fetchStudents = useCallback(async () => {
         setLoading(true);
         try {
             const res = await api.get('/students', { params: { search } });
@@ -38,7 +35,11 @@ export default function StudentsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [search]);
+
+    useEffect(() => {
+        fetchStudents();
+    }, [fetchStudents]);
 
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,7 +52,7 @@ export default function StudentsPage() {
                 gender: 'Male', current_class: '', father_name: '', contact_phone: ''
             });
             fetchStudents();
-        } catch (error) {
+        } catch {
             alert('Failed to add student');
         } finally {
             setSubmitting(false);
@@ -192,7 +193,7 @@ export default function StudentsPage() {
                                 <div className="h-px bg-slate-100" />
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium">Father's Name</label>
+                                        <label className="text-sm font-medium">Father&apos;s Name</label>
                                         <input className="w-full px-4 py-2 border rounded-lg" value={newStudent.father_name} onChange={e => setNewStudent({ ...newStudent, father_name: e.target.value })} />
                                     </div>
                                     <div className="space-y-2">

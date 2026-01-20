@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CreditCard,
@@ -50,7 +50,7 @@ export default function IDCardGenerator() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Dynamic ID Generator</h1>
-                        <p className="text-slate-500 font-medium">Create and manage your school's student ID cards with live dynamic data.</p>
+                        <p className="text-slate-500 font-medium">Create and manage your school&apos;s student ID cards with live dynamic data.</p>
                     </div>
                     <button
                         onClick={() => window.location.href = '/dashboard'}
@@ -210,7 +210,7 @@ export default function IDCardGenerator() {
                                 {/* Background Template */}
                                 <div className="absolute inset-0 z-0">
                                     {frontBg ? (
-                                        <img src={frontBg} className="w-full h-full object-cover" />
+                                        <img src={frontBg} alt="Card Front" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center opacity-50 italic text-slate-400 text-sm">
                                             No Template
@@ -223,7 +223,7 @@ export default function IDCardGenerator() {
                                     <div className="w-full flex justify-between items-start mb-8">
                                         <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-md p-2">
                                             {branding?.logo_url ? (
-                                                <img src={branding.logo_url} className="w-full h-full object-contain" />
+                                                <img src={branding.logo_url} alt="School Logo" className="w-full h-full object-contain" />
                                             ) : (
                                                 <GraduationCap className="text-blue-600" />
                                             )}
@@ -275,7 +275,7 @@ export default function IDCardGenerator() {
                                 <RefreshCcw size={20} className="text-slate-600" />
                             </button>
                             <div className="text-[10px] items-center flex font-bold tracking-widest text-slate-400 uppercase bg-slate-100 px-4 rounded-full">
-                                3.375" x 2.125" Standard
+                                3.375&quot; x 2.125&quot; Standard
                             </div>
                         </div>
                     </div>
@@ -285,6 +285,7 @@ export default function IDCardGenerator() {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function SectionTitle({ title, subtitle }: any) {
     return (
         <div className="space-y-1">
@@ -294,6 +295,7 @@ function SectionTitle({ title, subtitle }: any) {
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function LayerToggle({ label, active = false }: any) {
     return (
         <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${active ? 'border-blue-200 bg-blue-50/30' : 'border-slate-100 bg-slate-50 opacity-60'}`}>

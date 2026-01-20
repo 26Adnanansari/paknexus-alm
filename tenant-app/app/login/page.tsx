@@ -31,7 +31,7 @@ export default function LoginPage() {
             } else {
                 router.push('/dashboard');
             }
-        } catch (_) {
+        } catch {
             setError("Invalid email or password");
         } finally {
             setLoading(false);
