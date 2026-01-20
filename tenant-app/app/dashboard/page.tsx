@@ -11,7 +11,6 @@ import {
     Plus,
     Calendar,
     Bell,
-    Bell,
     Settings
 } from 'lucide-react';
 import api from '@/lib/api';
