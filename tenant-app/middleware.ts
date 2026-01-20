@@ -2,7 +2,7 @@ import { auth } from "@/auth"
 
 export default auth((req) => {
     const isLoggedIn = !!req.auth
-    const isOnDashboard = req.nextUrl.pathname.startsWith("/dashboard") && !req.nextUrl.pathname.startsWith("/dashboard/moments")
+    const isOnDashboard = req.nextUrl.pathname.startsWith("/dashboard")
 
     if (isOnDashboard) {
         if (isLoggedIn) return
