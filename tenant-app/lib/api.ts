@@ -17,7 +17,7 @@ api.interceptors.request.use(async (config) => {
         try {
             const session = await getSession();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (session?.accessToken) {
+            if ((session as any)?.accessToken) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 token = (session as any).accessToken;
             }
