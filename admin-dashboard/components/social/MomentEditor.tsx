@@ -103,6 +103,7 @@ export default function MomentEditor({ orderId, onSuccess }: MomentEditorProps) 
             console.log("Submitting Moment:", payload);
 
             // Real API Call
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const token = (window as any).__NEXT_DATA__?.props?.pageProps?.session?.accessToken;
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/moments/`, {

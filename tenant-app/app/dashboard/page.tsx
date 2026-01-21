@@ -11,7 +11,8 @@ import {
     Plus,
     Calendar,
     Bell,
-    Settings
+    Settings,
+    type LucideIcon
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import KarmaCard from '@/components/karma/KarmaCard';
@@ -19,21 +20,17 @@ import KarmaCard from '@/components/karma/KarmaCard';
 export default function Dashboard() {
     const { branding } = useBranding();
     const { data: session } = useSession();
-    const [stats] = React.useState([
-        { label: 'Students', value: '0', limit: '0', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 0 },
-        { label: 'Teachers', value: '0', limit: '0', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 0 },
-        { label: 'Storage', value: '0 MB', limit: '0 MB', icon: Database, color: 'text-orange-600', bg: 'bg-orange-100', progress: 0 },
+    const [stats] = React.useState<StatCardProps[]>([
+        { label: 'Students', value: '0', limit: '0', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 0, delay: 0 },
+        { label: 'Teachers', value: '0', limit: '0', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 0, delay: 0.1 },
+        { label: 'Storage', value: '0 MB', limit: '0 MB', icon: Database, color: 'text-orange-600', bg: 'bg-orange-100', progress: 0, delay: 0.2 },
     ]);
 
     // Placeholder for future stats fetching
     React.useEffect(() => {
         if (!session) return;
-        // console.log("Session loaded:", session);
+        // connection logic here
     }, [session]);
-
-    // ... wait, I need to do this properly.
-    // I will replace the component logic to include useSession and fetch.
-
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto w-full">
@@ -138,8 +135,18 @@ export default function Dashboard() {
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function StatCard({ label, value, limit, icon: Icon, color, bg, progress, delay }: any) {
+interface StatCardProps {
+    label: string;
+    value: string;
+    limit: string;
+    icon: LucideIcon;
+    color: string;
+    bg: string;
+    progress: number;
+    delay: number;
+}
+
+function StatCard({ label, value, limit, icon: Icon, color, bg, progress, delay }: StatCardProps) {
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -174,10 +181,15 @@ function StatCard({ label, value, limit, icon: Icon, color, bg, progress, delay 
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function QuickAction({ icon: Icon, label, color, onClick }: any) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const colors: any = {
+interface QuickActionProps {
+    icon: LucideIcon;
+    label: string;
+    color: 'blue' | 'emerald' | 'purple' | 'slate';
+    onClick?: () => void;
+}
+
+function QuickAction({ icon: Icon, label, color, onClick }: QuickActionProps) {
+    const colors: Record<string, string> = {
         blue: 'bg-blue-50 text-blue-600 hover:bg-blue-600',
         emerald: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600',
         purple: 'bg-purple-50 text-purple-600 hover:bg-purple-600',
@@ -197,8 +209,15 @@ function QuickAction({ icon: Icon, label, color, onClick }: any) {
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ActivityEntry({ title, name, time, icon: Icon, color }: any) {
+interface ActivityEntryProps {
+    title: string;
+    name: string;
+    time: string;
+    icon: LucideIcon;
+    color: string;
+}
+
+function ActivityEntry({ title, name, time, icon: Icon, color }: ActivityEntryProps) {
     return (
         <div className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors rounded-xl">
             <div className={`p-3 rounded-xl ${color}`}>

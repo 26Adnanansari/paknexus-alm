@@ -28,7 +28,8 @@ const policySchema = z.object({
 type PolicyFormValues = z.infer<typeof policySchema>;
 
 export default function RefundPolicyManager() {
-    const [policies, setPolicies] = useState<any[]>([]);
+    // using PolicyFormValues type for state, accepting it might have extra fields like 'created_at' for now or intersection
+    const [policies, setPolicies] = useState<(PolicyFormValues & { created_at?: Date, id?: number })[]>([]);
     const [loading, setLoading] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
 
@@ -47,20 +48,20 @@ export default function RefundPolicyManager() {
         name: "tiers"
     });
 
-    // Fetch Policies
-    const fetchPolicies = async () => {
-        try {
-            const res = await fetch('/api/proxy/refunds'); // Assuming proxy setup
-            if (res.ok) {
-                const data = await res.json();
-                setPolicies(data);
-            }
-        } catch (error) {
-            console.error("Failed to fetch policies", error);
-        }
-    };
-
     useEffect(() => {
+        // Fetch Policies
+        const fetchPolicies = async () => {
+            try {
+                const res = await fetch('/api/proxy/refunds'); // Assuming proxy setup
+                if (res.ok) {
+                    const data = await res.json();
+                    setPolicies(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch policies", error);
+            }
+        };
+
         fetchPolicies();
     }, []);
 
@@ -69,7 +70,6 @@ export default function RefundPolicyManager() {
         setSuccessMsg('');
         try {
             // Direct call to backend or via proxy
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
             // Note: In real app, use the authenticated proxy or passing token.
             // For this demo, assuming proxy handles auth or we use a helper.
 
@@ -117,7 +117,7 @@ export default function RefundPolicyManager() {
                         <div className="flex items-center space-x-2">
                             <Switch
                                 id="is_default"
-                                onCheckedChange={(checked) => {
+                                onCheckedChange={() => {
                                     // Manual handling for switch with react-hook-form
                                     // Need to use Controller or just set value if complex
                                 }}
@@ -186,7 +186,7 @@ export default function RefundPolicyManager() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-2">
-                                {policy.tiers?.map((tier: any, t: number) => (
+                                {policy.tiers?.map((tier: z.infer<typeof tierSchema>, t: number) => (
                                     <div key={t} className="flex justify-between text-sm p-2 bg-slate-100 dark:bg-slate-800 rounded">
                                         <span>{`> ${tier.days_before} Days Before`}</span>
                                         <span className="font-mono font-bold">{tier.refund_percentage}% Refund</span>

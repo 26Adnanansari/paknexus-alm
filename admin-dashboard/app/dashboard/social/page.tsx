@@ -1,7 +1,7 @@
 'use client';
 
 import MomentEditor from '@/components/social/MomentEditor';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function SocialPage() {
     return (

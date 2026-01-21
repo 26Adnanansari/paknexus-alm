@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
             } else {
                 setMessage({ type: 'error', text: data.detail || 'Invalid code or something went wrong.' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Failed to connect to the server.' });
         } finally {
             setIsLoading(false);

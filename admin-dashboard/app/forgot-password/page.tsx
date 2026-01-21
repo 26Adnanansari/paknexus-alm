@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
             } else {
                 setMessage({ type: 'error', text: data.detail || 'Something went wrong.' });
             }
-        } catch (error) {
+        } catch {
             setMessage({ type: 'error', text: 'Failed to connect to the server.' });
         } finally {
             setIsLoading(false);
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
                         <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
                     </div>
                     <CardDescription>
-                        Enter your email address and we'll send you a 6-digit code to reset your password.
+                        Enter your email address and we&apos;ll send you a 6-digit code to reset your password.
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>

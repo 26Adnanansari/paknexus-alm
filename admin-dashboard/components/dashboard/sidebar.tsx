@@ -8,12 +8,11 @@ import { useState } from 'react';
 import {
     LayoutDashboard,
     Users,
+    Building2,
     BarChart3,
     Settings,
-    Building2,
-    X,
-    Menu,
-    LogOut
+    LogOut,
+    Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';

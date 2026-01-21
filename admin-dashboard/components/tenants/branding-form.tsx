@@ -51,7 +51,7 @@ export function TenantBrandingForm({ tenant }: TenantBrandingFormProps) {
         try {
             await tenantsApi.update(tenant.tenant_id, values);
             toast.success('Branding updated successfully!');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             toast.error((error as any).response?.data?.detail || 'Failed to update branding');

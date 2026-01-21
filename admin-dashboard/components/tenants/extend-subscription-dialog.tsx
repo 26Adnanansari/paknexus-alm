@@ -52,8 +52,9 @@ export function ExtendSubscriptionDialog({
             toast.success(`Subscription extended for ${tenantName}`);
             setIsOpen(false);
             onSuccess();
-        } catch (error: any) {
-            toast.error(error.response?.data?.detail || 'Failed to extend subscription');
+        } catch (error: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            toast.error((error as any).response?.data?.detail || 'Failed to extend subscription');
         } finally {
             setIsSubmitting(false);
         }

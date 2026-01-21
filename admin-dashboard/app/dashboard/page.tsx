@@ -100,7 +100,7 @@ export default function DashboardPage() {
                 <CardContent>
                     {tenants?.data?.tenants?.length ? (
                         <div className="space-y-4">
-                            {tenants.data.tenants.slice(0, 5).map((tenant: any) => (
+                            {tenants.data.tenants.slice(0, 5).map((tenant: { tenant_id: string; name: string; contact_email: string; status: string }) => (
                                 <div key={tenant.tenant_id} className="flex items-center justify-between">
                                     <div>
                                         <p className="font-medium">{tenant.name}</p>

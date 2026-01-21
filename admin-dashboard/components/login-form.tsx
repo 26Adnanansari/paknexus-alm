@@ -6,7 +6,6 @@ import { authenticate } from '@/app/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 
 export default function LoginForm() {

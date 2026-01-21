@@ -15,7 +15,8 @@ import {
     Menu,
     X,
     LogOut,
-    Camera
+    Camera,
+    type LucideIcon
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from "next-auth/react";
@@ -195,8 +196,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function NavItem({ icon: Icon, label, active = false, onClick }: any) {
+interface NavItemProps {
+    icon: LucideIcon;
+    label: string;
+    active?: boolean;
+    onClick: () => void;
+}
+
+function NavItem({ icon: Icon, label, active = false, onClick }: NavItemProps) {
     return (
         <button
             onClick={onClick}
@@ -211,8 +218,14 @@ function NavItem({ icon: Icon, label, active = false, onClick }: any) {
     );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function NavButton({ icon: Icon, label, active = false, onClick }: any) {
+interface NavButtonProps {
+    icon: LucideIcon;
+    label: string;
+    active?: boolean;
+    onClick: () => void;
+}
+
+function NavButton({ icon: Icon, label, active = false, onClick }: NavButtonProps) {
     return (
         <button onClick={onClick} className={`flex flex-col items-center justify-center gap-1 ${active ? 'text-blue-600' : 'text-slate-400'}`}>
             <Icon size={22} />
