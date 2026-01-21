@@ -15,10 +15,15 @@ To build the world's most advanced, intuitive, and visually stunning management 
 - **Gesture Controls**: Swipe to mark attendance, pull to refresh feeds.
 - **Adaptive Layouts**: Stackable grids for stats, hidden sidebars, and bottom navigation for mobile users.
 
-## Monetization Strategy
-- **Tiered Subscriptions**: Basic (Core), Pro (Advanced Analytics + Social), Enterprise (White-label).
-- **Add-on Modules**: Transport tracking, AI Tutor integration, Alumni network.
-- **Transaction Fees**: Small percentage on fee payments processed through the platform.
+## Monetization Strategy (Earn per Service)
+- **Base Subscription**: Core access (Student Info, Basic Attendance).
+- **Service-Based Charges**:
+    - **Smart Attendance**: Charge extra for Face Recognition & Real-time SMS alerts.
+    - **ID Card Suite**: Free basic templates. Premium custom branded designs & bulk printing export service available for a fee.
+    - **Payment Gateway**: White-labeled fee collection portal (Platform takes 1-2% transaction fee).
+    - **Communication Plus**: WhatsApp/SMS integration packs (sold as credits).
+    - **AI Insights**: "At-risk" student prediction & personalized learning paths (Premium Add-on).
+- **Enterprise**: Fully white-labeled app with school's own branding on App Store.
 
 ## Technical Requirements & Design Patterns
 - **Frontend**: Next.js 15+ (App Router), TypeScript, Tailwind CSS, Framer Motion.

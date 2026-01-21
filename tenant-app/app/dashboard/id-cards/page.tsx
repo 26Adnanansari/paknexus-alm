@@ -8,7 +8,7 @@ import {
     Download,
     RefreshCcw,
     User,
-    QrCode,
+    Barcode as BarcodeIcon,
     Layout,
     Layers,
     CheckCircle2,
@@ -17,6 +17,7 @@ import {
     GraduationCap
 } from 'lucide-react';
 import { useBranding } from '@/context/branding-context';
+import Barcode from 'react-barcode';
 
 export default function IDCardGenerator() {
     const { branding } = useBranding();
@@ -52,13 +53,21 @@ export default function IDCardGenerator() {
                         <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Dynamic ID Generator</h1>
                         <p className="text-slate-500 font-medium">Create and manage your school&apos;s student ID cards with live dynamic data.</p>
                     </div>
-                    <button
-                        onClick={() => window.location.href = '/dashboard'}
-                        className="text-sm font-bold text-slate-600 hover:text-slate-900 flex items-center gap-2"
-                    >
-                        <ChevronLeft size={18} />
-                        Back to Dashboard
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => window.location.href = '/dashboard/attendance'}
+                            className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                            Open Scanner
+                        </button>
+                        <button
+                            onClick={() => window.location.href = '/dashboard'}
+                            className="text-sm font-bold text-slate-600 hover:text-slate-900 flex items-center gap-2"
+                        >
+                            <ChevronLeft size={18} />
+                            Back to Dashboard
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stepper */}
@@ -96,6 +105,7 @@ export default function IDCardGenerator() {
                                             <p className="text-xs font-bold text-slate-500 uppercase px-1">Front Side</p>
                                             <label className="relative block h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group overflow-hidden">
                                                 {frontBg ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={frontBg} alt="Front" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -110,6 +120,7 @@ export default function IDCardGenerator() {
                                             <p className="text-xs font-bold text-slate-500 uppercase px-1">Back Side</p>
                                             <label className="relative block h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group overflow-hidden">
                                                 {backBg ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={backBg} alt="Back" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -145,7 +156,7 @@ export default function IDCardGenerator() {
                                         <LayerToggle label="Student Photo" active />
                                         <LayerToggle label="Student Name" active />
                                         <LayerToggle label="Roll Number" active />
-                                        <LayerToggle label="QR Code" active />
+                                        <LayerToggle label="Barcode (Code 128)" active icon={<BarcodeIcon size={18} />} />
                                         <LayerToggle label="School Logo" />
                                     </div>
                                     <div className="flex gap-4 pt-4">
@@ -210,6 +221,7 @@ export default function IDCardGenerator() {
                                 {/* Background Template */}
                                 <div className="absolute inset-0 z-0">
                                     {frontBg ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={frontBg} alt="Card Front" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center opacity-50 italic text-slate-400 text-sm">
@@ -223,6 +235,7 @@ export default function IDCardGenerator() {
                                     <div className="w-full flex justify-between items-start mb-8">
                                         <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-md p-2">
                                             {branding?.logo_url ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
                                                 <img src={branding.logo_url} alt="School Logo" className="w-full h-full object-contain" />
                                             ) : (
                                                 <GraduationCap className="text-blue-600" />
@@ -254,9 +267,9 @@ export default function IDCardGenerator() {
                                         </div>
                                     </div>
 
-                                    <div className="w-full flex justify-between items-end">
-                                        <div className="w-12 h-12 bg-white rounded-lg p-1.5 shadow-sm">
-                                            <QrCode size={40} className="text-slate-900" />
+                                    <div className="w-full flex justify-between items-end mt-2">
+                                        <div className="bg-white p-1 rounded">
+                                            <Barcode value="PN-2026-45" width={1.2} height={30} fontSize={10} displayValue={false} />
                                         </div>
                                         <div className="text-right">
                                             <div className="h-6 w-24 bg-slate-900/5 rounded border border-slate-900/10 mb-1 flex items-center justify-center italic text-[6px] text-slate-400">Principal Sign</div>
@@ -296,12 +309,12 @@ function SectionTitle({ title, subtitle }: any) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function LayerToggle({ label, active = false }: any) {
+function LayerToggle({ label, active = false, icon }: any) {
     return (
         <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${active ? 'border-blue-200 bg-blue-50/30' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
             <div className="flex items-center gap-3">
                 <div className={active ? 'text-blue-600' : 'text-slate-400'}>
-                    <Layers size={18} />
+                    {icon || <Layers size={18} />}
                 </div>
                 <span className={`text-sm font-bold ${active ? 'text-slate-900' : 'text-slate-400'}`}>{label}</span>
             </div>
