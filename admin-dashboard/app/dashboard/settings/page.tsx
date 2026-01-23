@@ -33,11 +33,22 @@ export default function SettingsPage() {
     }
 
     if (error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const isForbidden = (error as any)?.response?.status === 403;
+
         return (
-            <div className="p-8 text-center">
+            <div className="p-8 text-center bg-red-50 rounded-xl border border-red-100">
                 <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                <h2 className="text-xl font-bold text-gray-900">Failed to load settings</h2>
-                <p className="text-gray-500">Please ensure you have super admin privileges.</p>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+                {isForbidden ? (
+                    <p className="text-red-600 max-w-sm mx-auto">
+                        You do not have permission to view System Settings. This page is restricted to <strong>High-Level Platform Administrators</strong> only.
+                        <br /><br />
+                        If you are a School Admin, please return to your <a href="/" className="underline font-bold">School Dashboard</a>.
+                    </p>
+                ) : (
+                    <p className="text-gray-500">Failed to load settings. Please try again later.</p>
+                )}
             </div>
         );
     }

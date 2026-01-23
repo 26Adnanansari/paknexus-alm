@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import api from '@/lib/api';
-import { Loader2, CheckCircle2, AlertCircle, School, Globe, Mail, Lock, Phone } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, School, Globe, Mail, Lock, Phone, Eye, EyeOff } from 'lucide-react';
 
 export default function SignupForm({ onClose }: { onClose: () => void }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
         school_name: '',
@@ -108,7 +109,7 @@ export default function SignupForm({ onClose }: { onClose: () => void }) {
                                 className="flex-1 pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-l-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
                             />
                             <div className="bg-slate-100 border-y border-r border-slate-200 px-4 py-3 rounded-r-xl text-slate-500 font-medium select-none">
-                                .pakai.com
+                                .{process.env.NEXT_PUBLIC_APP_DOMAIN || 'pakai.com'}
                             </div>
                         </div>
                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1.5 ml-1">Lowercase letters & hyphens only</p>
@@ -143,13 +144,20 @@ export default function SignupForm({ onClose }: { onClose: () => void }) {
                         <Lock className="absolute left-4 top-3.5 text-slate-400" size={20} />
                         <input
                             required
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             name="admin_password"
                             placeholder="Create Password"
                             value={formData.admin_password}
                             onChange={handleChange}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
+                            className="w-full pl-12 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium"
                         />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                     </div>
                 </div>
 

@@ -141,8 +141,11 @@ export function TenantTable({ tenants, pagination, isLoading, onPageChange }: Te
                                                     try {
                                                         await tenantsApi.activate(tenant.tenant_id, 'MANUAL_APPROVAL', 'Activated from Dashboard');
                                                         window.location.reload(); // Simple reload to refresh data
-                                                    } catch {
-                                                        alert('Failed to activate tenant');
+                                                    } catch (err: unknown) {
+                                                        console.error("Activation failed:", err);
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                        const msg = (err as any)?.response?.data?.detail || 'Failed to activate tenant. Check your permissions.';
+                                                        alert(msg);
                                                     }
                                                 }
                                             }}
