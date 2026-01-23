@@ -88,7 +88,7 @@ export default function Home() {
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="relative bg-white rounded-[24px] md:rounded-[32px] shadow-2xl w-full max-w-lg p-5 md:p-8 overflow-y-auto max-h-[90vh]"
+                className="relative z-10 bg-white rounded-[24px] md:rounded-[32px] shadow-2xl w-full max-w-lg p-5 md:p-8 overflow-y-auto max-h-[90vh]"
               >
                 <button
                   onClick={() => setIsSignupOpen(false)}

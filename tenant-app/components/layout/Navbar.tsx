@@ -52,6 +52,7 @@ export default function Navbar() {
                     <div className="hidden md:flex items-center space-x-8">
                         <a href="#students" className="font-medium text-muted-foreground hover:text-primary transition-colors">Students</a>
                         <a href="#teachers" className="font-medium text-muted-foreground hover:text-primary transition-colors">Teachers</a>
+                        <a href="/dashboard/fees" className="font-medium text-muted-foreground hover:text-primary transition-colors">Fees</a>
                         <a href="#curriculum" className="font-medium text-muted-foreground hover:text-primary transition-colors">Curriculum</a>
                         {session ? (
                             <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
