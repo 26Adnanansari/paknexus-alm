@@ -30,13 +30,11 @@ export const BrandingProvider = ({ children }: { children: React.ReactNode }) =>
 
     useEffect(() => {
         const fetchBranding = async () => {
-            try {
-                // Determine domain/subdomain to fetch branding
-                // In production: subdomain.pakainexus.com -> 'subdomain'
-                // In dev: localhost -> handle gracefully (maybe hardcode 'demo' or user has to map it)
-                const domain = window.location.hostname;
+            // Determine domain/subdomain to fetch branding
+            const domain = window.location.hostname;
 
-                // Use public endpoint so we don't get 401s on login/landing
+            try {
+                // Use public endpoint
                 const res = await api.get(`/public/branding?domain=${domain}`);
                 setBranding(res.data);
 
@@ -47,8 +45,17 @@ export const BrandingProvider = ({ children }: { children: React.ReactNode }) =>
                 if (res.data.secondary_color) {
                     document.documentElement.style.setProperty('--secondary', res.data.secondary_color);
                 }
-            } catch (err) {
-                console.error('Failed to fetch branding:', err);
+            } catch (err: any) {
+                // Gracefully handle 404 (Domain not found) or 400 (Bad Request)
+                if (err.response && (err.response.status === 404 || err.response.status === 400)) {
+                    // Suppress verbose error for known branding failures
+                    if (process.env.NODE_ENV === 'development') {
+                        console.debug(`[Branding] No custom branding found for ${domain}. Using default.`);
+                    }
+                } else {
+                    // Log actual errors (500s, network issues)
+                    console.error('Failed to fetch branding:', err.message || err);
+                }
             } finally {
                 setLoading(false);
             }

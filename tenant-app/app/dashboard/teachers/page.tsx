@@ -41,16 +41,30 @@ export default function TeachersPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
+
+        // Sanitize payload
+        const payload = {
+            ...newTeacher,
+            email: newTeacher.email.trim() || null,
+            phone: newTeacher.phone.trim() || null,
+            full_name: newTeacher.full_name.trim(),
+            employee_id: newTeacher.employee_id.trim(),
+            role: 'teacher'
+        };
+
         try {
-            await api.post('/staff', { ...newTeacher, role: 'teacher' });
+            await api.post('/staff', payload);
             setIsAddOpen(false);
             setNewTeacher({
                 full_name: '', employee_id: '', email: '', phone: '',
                 designation: 'Teacher', join_date: new Date().toISOString().split('T')[0]
             });
             fetchTeachers();
-        } catch {
-            alert('Failed to add teacher');
+        } catch (error: any) {
+            console.error("Failed to add teacher:", error);
+            const msg = error?.response?.data?.detail
+                || 'Failed to add teacher. Check for duplicate Email or Employee ID. See console for details.';
+            alert(msg);
         } finally {
             setSubmitting(false);
         }

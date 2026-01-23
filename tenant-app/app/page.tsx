@@ -127,29 +127,153 @@ export default function Home() {
         </section>
 
         {/* Features Grid */}
-        <section className="max-w-7xl mx-auto mb-12 md:mb-32">
+        <section className="max-w-7xl mx-auto mb-12 md:mb-32 space-y-24 md:space-y-32">
           <div className="text-center mb-8 md:mb-16">
-            <h2 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4">Core Modules</h2>
-            <p className="text-sm md:text-base text-muted-foreground px-4">Everything you need to manage your institution efficiently.</p>
+            <h2 className="text-3xl md:text-5xl font-black mb-4 md:mb-6 tracking-tight">Core Modules</h2>
+            <p className="text-base md:text-xl text-muted-foreground px-4 max-w-2xl mx-auto">Everything you need to manage your institution efficiently, all in one place.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 md:gap-8">
-            {features.map((f, i) => (
-              <motion.div
-                key={i}
-                initial={{ y: 30, opacity: 0 }}
-                whileInView={{ y: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="glass p-5 md:p-8 rounded-2xl md:rounded-3xl group hover:border-primary/50 transition-all cursor-default"
-              >
-                <div className={`${f.bg} p-3 md:p-4 rounded-xl md:rounded-2xl w-fit mb-4 md:mb-6 group-hover:scale-110 transition-transform`}>
-                  <f.icon className={`h-6 w-6 md:h-8 md:w-8 ${f.color}`} />
-                </div>
-                <h3 className="text-lg md:text-2xl font-bold mb-2 md:mb-4 group-hover:text-primary transition-colors">{f.title}</h3>
-                <p className="text-muted-foreground leading-relaxed text-sm md:text-base">{f.desc}</p>
-              </motion.div>
-            ))}
+          {/* Students Section */}
+          <div id="students" className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center scroll-mt-24">
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              className="order-2 lg:order-1"
+            >
+              <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl w-fit mb-6">
+                <Users className="h-8 w-8" />
+              </div>
+              <h3 className="text-3xl md:text-4xl font-bold mb-4">Student Management</h3>
+              <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+                Comprehensive digital records for every student. Track admission details, attendance history, and academic performance in real-time.
+              </p>
+              <ul className="space-y-3 mb-8">
+                {[
+                  'Digital Student Profiles & Records',
+                  'Real-time Attendance Tracking',
+                  'Performance Analytics & Gradebooks',
+                  'Parent Communication Portal'
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-slate-700">
+                    <div className="h-2 w-2 rounded-full bg-blue-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button className="text-blue-600 font-bold hover:gap-3 gap-2 flex items-center transition-all bg-blue-50 px-6 py-3 rounded-xl hover:bg-blue-100">
+                Learn more <ArrowRight className="h-4 w-4" />
+              </button>
+            </motion.div>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              className="order-1 lg:order-2 bg-slate-100 rounded-[2rem] p-4 md:p-8 flex items-center justify-center min-h-[400px] border border-slate-200 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
+              {/* Visual Placeholder for Generated Image */}
+              <div className="text-center z-10 p-6">
+                <Users className="h-24 w-24 text-blue-200 mx-auto mb-4 group-hover:scale-110 transition-transform duration-500" />
+                <p className="font-bold text-slate-400 uppercase tracking-widest text-sm">Dashboard Preview</p>
+                <p className="text-slate-300 text-xs mt-2">Replace with `students_management_dashboard.png`</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Teachers Section */}
+          <div id="teachers" className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center scroll-mt-24">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              className="bg-slate-100 rounded-[2rem] p-4 md:p-8 flex items-center justify-center min-h-[400px] border border-slate-200 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500/5 to-pink-500/5" />
+              {/* Visual Placeholder for Generated Image */}
+              <div className="text-center z-10 p-6">
+                <UserCheck className="h-24 w-24 text-indigo-200 mx-auto mb-4 group-hover:scale-110 transition-transform duration-500" />
+                <p className="font-bold text-slate-400 uppercase tracking-widest text-sm">Staff Interface Preview</p>
+                <p className="text-slate-300 text-xs mt-2">Replace with `teachers_staff_management.png`</p>
+              </div>
+            </motion.div>
+            <motion.div
+              initial={{ x: 20, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              <div className="bg-indigo-50 text-indigo-600 p-3 rounded-2xl w-fit mb-6">
+                <UserCheck className="h-8 w-8" />
+              </div>
+              <h3 className="text-3xl md:text-4xl font-bold mb-4">Teachers & Staff</h3>
+              <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+                Empower your faculty with tools that simplify administrative tasks. Manage schedules, payroll, and class assignments effortlessly.
+              </p>
+              <ul className="space-y-3 mb-8">
+                {[
+                  'Automated Schedule Management',
+                  'Payroll & Leave Tracking',
+                  'Digital Lesson Planning',
+                  'Staff Directory & Roles'
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-slate-700">
+                    <div className="h-2 w-2 rounded-full bg-indigo-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button className="text-indigo-600 font-bold hover:gap-3 gap-2 flex items-center transition-all bg-indigo-50 px-6 py-3 rounded-xl hover:bg-indigo-100">
+                Explore tools <ArrowRight className="h-4 w-4" />
+              </button>
+            </motion.div>
+          </div>
+
+          {/* Curriculum Section */}
+          <div id="curriculum" className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center scroll-mt-24">
+            <motion.div
+              initial={{ x: -20, opacity: 0 }}
+              whileInView={{ x: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              className="order-2 lg:order-1"
+            >
+              <div className="bg-violet-50 text-violet-600 p-3 rounded-2xl w-fit mb-6">
+                <BookOpen className="h-8 w-8" />
+              </div>
+              <h3 className="text-3xl md:text-4xl font-bold mb-4">Academic Content</h3>
+              <p className="text-lg text-muted-foreground mb-6 leading-relaxed">
+                A centralized hub for all learning materials. Distribute assignments, share resources, and manage the academic calendar with ease.
+              </p>
+              <ul className="space-y-3 mb-8">
+                {[
+                  'Digital Resource Library',
+                  'Assignment & Homework Portal',
+                  'Exam & Quiz Management',
+                  'Curriculum Mapping'
+                ].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-slate-700">
+                    <div className="h-2 w-2 rounded-full bg-violet-500" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button className="text-violet-600 font-bold hover:gap-3 gap-2 flex items-center transition-all bg-violet-50 px-6 py-3 rounded-xl hover:bg-violet-100">
+                View curriculum <ArrowRight className="h-4 w-4" />
+              </button>
+            </motion.div>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              whileInView={{ scale: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              className="order-1 lg:order-2 bg-slate-100 rounded-[2rem] p-4 md:p-8 flex items-center justify-center min-h-[400px] border border-slate-200 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-bl from-violet-500/5 to-fuchsia-500/5" />
+              {/* Visual Placeholder for Generated Image */}
+              <div className="text-center z-10 p-6">
+                <BookOpen className="h-24 w-24 text-violet-200 mx-auto mb-4 group-hover:scale-110 transition-transform duration-500" />
+                <p className="font-bold text-slate-400 uppercase tracking-widest text-sm">Curriculum Preview</p>
+                <p className="text-slate-300 text-xs mt-2">Replace with `curriculum_academic_content.png`</p>
+              </div>
+            </motion.div>
           </div>
         </section>
 

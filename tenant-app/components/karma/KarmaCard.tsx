@@ -53,58 +53,49 @@ export default function KarmaCard() {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="col-span-12 md:col-span-4 bg-gradient-to-br from-violet-600 to-purple-700 rounded-3xl p-6 text-white relative overflow-hidden shadow-xl"
+            className="col-span-12 md:col-span-4 bg-gradient-to-br from-violet-600 to-purple-700 rounded-3xl p-4 text-white relative overflow-hidden shadow-xl min-h-[140px] flex flex-col justify-between"
         >
             {/* Background Decor */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-xl -ml-5 -mb-5" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-black/10 rounded-full blur-xl -ml-4 -mb-4" />
 
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full backdrop-blur-md">
-                        <Trophy className="h-4 w-4 text-yellow-300" />
-                        <span className="text-sm font-bold">Karma Points</span>
+            <div className="relative z-10 w-full">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2 bg-white/10 px-2.5 py-1 rounded-full backdrop-blur-md">
+                        <Trophy className="h-3.5 w-3.5 text-yellow-300" />
+                        <span className="text-xs font-bold">Karma Points</span>
                     </div>
-                    {stats.rank > 0 && (
-                        <div className="text-sm font-medium opacity-90">
-                            Rank #{stats.rank}
-                        </div>
-                    )}
                 </div>
 
-                <div className="flex items-baseline space-x-1 mb-8">
+                <div className="flex items-baseline space-x-1 mb-4">
                     {loading ? (
-                        <div className="h-10 w-24 bg-white/20 animate-pulse rounded-lg" />
+                        <div className="h-8 w-20 bg-white/20 animate-pulse rounded-lg" />
                     ) : (
-                        <h2 className="text-5xl font-black tracking-tighter">
+                        <h2 className="text-4xl font-black tracking-tighter leading-none">
                             {stats.total_points.toLocaleString()}
                         </h2>
                     )}
-                    <span className="text-violet-200 font-medium">pts</span>
+                    <span className="text-violet-200 text-sm font-medium">pts</span>
                 </div>
 
-                <div className="flex items-center justify-between">
-                    <div className="flex -space-x-3">
+                <div className="flex items-center justify-between mt-auto">
+                    <div className="flex -space-x-2">
                         {loading ? (
-                            [1, 2].map(i => <div key={i} className="w-10 h-10 rounded-full bg-white/20 animate-pulse" />)
+                            [1, 2].map(i => <div key={i} className="w-8 h-8 rounded-full bg-white/20 animate-pulse" />)
                         ) : (
                             stats.badges.map((b: Badge, i) => (
-                                <div key={i} className="w-10 h-10 rounded-full bg-white/10 border-2 border-purple-500 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform cursor-help" title={b.name}>
-                                    <Star className="h-5 w-5 text-yellow-300 fill-yellow-300" />
+                                <div key={i} className="w-8 h-8 rounded-full bg-white/10 border border-purple-400 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform cursor-help" title={b.name}>
+                                    <Star className="h-3.5 w-3.5 text-yellow-300 fill-yellow-300" />
                                 </div>
                             ))
                         )}
-                        {stats.badges.length > 3 && (
-                            <div className="w-10 h-10 rounded-full bg-slate-900/50 border-2 border-purple-500 flex items-center justify-center text-xs font-bold">
-                                +{stats.badges.length - 3}
-                            </div>
-                        )}
                     </div>
 
-                    <a href="/dashboard/karma" className="flex items-center space-x-1 text-sm font-bold text-yellow-300 hover:text-yellow-200 transition-colors">
-                        <span>Leaderboard</span>
-                        <TrendingUp className="h-4 w-4" />
-                    </a>
+                    {stats.rank > 0 && (
+                        <div className="text-xs font-bold bg-white/20 px-2 py-1 rounded-lg backdrop-blur-sm">
+                            #{stats.rank} Rank
+                        </div>
+                    )}
                 </div>
             </div>
         </motion.div>

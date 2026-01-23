@@ -85,36 +85,38 @@ export default function LoginPage() {
 
                         <div className="space-y-4">
                             <div className="relative group">
-                                <User className="absolute left-4 top-3.5 h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                                 <input
                                     type="email"
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 py-3 text-base text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 h-12 md:h-14 text-base text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
                                     placeholder="admin@school.com"
+                                    aria-label="Email Address"
                                 />
                             </div>
 
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-3.5 h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                                 <input
                                     type="password"
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 py-3 text-base text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
+                                    className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-12 h-12 md:h-14 text-base text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all hover:bg-slate-900/70"
                                     placeholder="••••••••"
+                                    aria-label="Password"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between text-xs">
-                            <label className="flex items-center text-slate-400 hover:text-slate-300 cursor-pointer">
-                                <input type="checkbox" className="mr-2 rounded border-white/10 bg-white/5" />
+                        <div className="flex items-center justify-between text-sm">
+                            <label className="flex items-center text-slate-400 hover:text-slate-300 cursor-pointer py-2">
+                                <input type="checkbox" className="mr-3 w-5 h-5 rounded border-white/10 bg-white/5 accent-blue-600" />
                                 Remember me
                             </label>
-                            <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors">Forgot Password?</a>
+                            <a href="#" className="text-blue-400 hover:text-blue-300 transition-colors py-2 font-medium">Forgot Password?</a>
                         </div>
 
                         <Button

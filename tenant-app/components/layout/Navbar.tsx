@@ -6,10 +6,12 @@ import { motion } from 'framer-motion';
 import { GraduationCap, LogIn, Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 
 export default function Navbar() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { branding } = useBranding() as any;
+    const { data: session } = useSession();
     const router = useRouter();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
@@ -48,16 +50,28 @@ export default function Navbar() {
 
                     {/* Desktop Nav */}
                     <div className="hidden md:flex items-center space-x-8">
-                        <a href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Students</a>
-                        <a href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Teachers</a>
-                        <a href="#" className="font-medium text-muted-foreground hover:text-primary transition-colors">Curriculum</a>
-                        <button
-                            onClick={handleLogin}
-                            className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold premium-shadow hover:scale-105 transition-all flex items-center space-x-2"
-                        >
-                            <LogIn className="h-4 w-4" />
-                            <span>Login</span>
-                        </button>
+                        <a href="#students" className="font-medium text-muted-foreground hover:text-primary transition-colors">Students</a>
+                        <a href="#teachers" className="font-medium text-muted-foreground hover:text-primary transition-colors">Teachers</a>
+                        <a href="#curriculum" className="font-medium text-muted-foreground hover:text-primary transition-colors">Curriculum</a>
+                        {session ? (
+                            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                                <div className="text-right hidden lg:block">
+                                    <p className="text-sm font-bold text-slate-900 leading-none">{session.user?.name || 'Administrator'}</p>
+                                    <p className="text-xs text-slate-500 mt-1">{session.user?.email}</p>
+                                </div>
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold shadow-sm">
+                                    {session.user?.name?.[0] || 'A'}
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleLogin}
+                                className="bg-primary text-primary-foreground px-6 py-2.5 rounded-xl font-bold premium-shadow hover:scale-105 transition-all flex items-center space-x-2"
+                            >
+                                <LogIn className="h-4 w-4" />
+                                <span>Login</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Mobile Menu Toggle */}
@@ -90,9 +104,9 @@ export default function Navbar() {
                             </button>
                         </div>
                         <div className="space-y-4 flex flex-col flex-1">
-                            <a href="#" className="text-base font-medium p-2 hover:bg-slate-50 rounded-lg transition-colors">Students</a>
-                            <a href="#" className="text-base font-medium p-2 hover:bg-slate-50 rounded-lg transition-colors">Teachers</a>
-                            <a href="#" className="text-base font-medium p-2 hover:bg-slate-50 rounded-lg transition-colors">Curriculum</a>
+                            <a href="#students" onClick={() => setIsMobileMenuOpen(false)} className="text-base font-medium p-2 hover:bg-slate-50 rounded-lg transition-colors">Students</a>
+                            <a href="#teachers" onClick={() => setIsMobileMenuOpen(false)} className="text-base font-medium p-2 hover:bg-slate-50 rounded-lg transition-colors">Teachers</a>
+                            <a href="#curriculum" onClick={() => setIsMobileMenuOpen(false)} className="text-base font-medium p-2 hover:bg-slate-50 rounded-lg transition-colors">Curriculum</a>
                         </div>
                         <div className="pt-6 mt-auto border-t border-border">
                             <button
