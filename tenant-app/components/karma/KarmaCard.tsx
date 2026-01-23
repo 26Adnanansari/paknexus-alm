@@ -71,7 +71,7 @@ export default function KarmaCard() {
                     {loading ? (
                         <div className="h-8 w-20 bg-white/20 animate-pulse rounded-lg" />
                     ) : (
-                        <h2 className="text-4xl font-black tracking-tighter leading-none">
+                        <h2 className="text-4xl font-black tracking-tighter leading-none text-white">
                             {stats.total_points.toLocaleString()}
                         </h2>
                     )}
