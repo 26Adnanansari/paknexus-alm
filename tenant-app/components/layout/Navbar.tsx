@@ -3,10 +3,10 @@
 import React from 'react';
 import { useBranding } from '@/context/branding-context';
 import { motion } from 'framer-motion';
-import { GraduationCap, LogIn, Menu, X } from 'lucide-react';
+import { GraduationCap, LogIn, Menu, X, LayoutDashboard, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function Navbar() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,18 +54,28 @@ export default function Navbar() {
                         <a href="#teachers" className="font-medium text-muted-foreground hover:text-primary transition-colors">Teachers</a>
                         <a href="#curriculum" className="font-medium text-muted-foreground hover:text-primary transition-colors">Curriculum</a>
                         {session ? (
-                            <>
-                                <a href="/dashboard/fees" className="font-medium text-muted-foreground hover:text-primary transition-colors">Fees</a>
-                                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                                    <div className="text-right hidden lg:block">
-                                        <p className="text-sm font-bold text-slate-900 leading-none">{session.user?.name || 'Administrator'}</p>
-                                        <p className="text-xs text-slate-500 mt-1">{session.user?.email}</p>
-                                    </div>
-                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold shadow-sm">
+                            <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
+                                <button
+                                    onClick={() => router.push('/dashboard')}
+                                    className="px-4 py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors flex items-center gap-2"
+                                >
+                                    <LayoutDashboard size={16} />
+                                    Dashboard
+                                </button>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold">
                                         {session.user?.name?.[0] || 'A'}
                                     </div>
+                                    <button
+                                        onClick={() => signOut({ callbackUrl: '/' })}
+                                        className="text-slate-500 hover:text-red-600 transition-colors"
+                                        title="Logout"
+                                    >
+                                        <LogOut size={20} />
+                                    </button>
                                 </div>
-                            </>
+                            </div>
                         ) : (
                             <button
                                 onClick={handleLogin}
