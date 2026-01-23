@@ -52,18 +52,20 @@ export default function Navbar() {
                     <div className="hidden md:flex items-center space-x-8">
                         <a href="#students" className="font-medium text-muted-foreground hover:text-primary transition-colors">Students</a>
                         <a href="#teachers" className="font-medium text-muted-foreground hover:text-primary transition-colors">Teachers</a>
-                        <a href="/dashboard/fees" className="font-medium text-muted-foreground hover:text-primary transition-colors">Fees</a>
                         <a href="#curriculum" className="font-medium text-muted-foreground hover:text-primary transition-colors">Curriculum</a>
                         {session ? (
-                            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                                <div className="text-right hidden lg:block">
-                                    <p className="text-sm font-bold text-slate-900 leading-none">{session.user?.name || 'Administrator'}</p>
-                                    <p className="text-xs text-slate-500 mt-1">{session.user?.email}</p>
+                            <>
+                                <a href="/dashboard/fees" className="font-medium text-muted-foreground hover:text-primary transition-colors">Fees</a>
+                                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                                    <div className="text-right hidden lg:block">
+                                        <p className="text-sm font-bold text-slate-900 leading-none">{session.user?.name || 'Administrator'}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{session.user?.email}</p>
+                                    </div>
+                                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold shadow-sm">
+                                        {session.user?.name?.[0] || 'A'}
+                                    </div>
                                 </div>
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 text-primary font-bold shadow-sm">
-                                    {session.user?.name?.[0] || 'A'}
-                                </div>
-                            </div>
+                            </>
                         ) : (
                             <button
                                 onClick={handleLogin}
