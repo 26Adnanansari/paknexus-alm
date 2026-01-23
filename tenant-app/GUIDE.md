@@ -32,7 +32,11 @@
 ### 3. School Moments
 - **Navigate**: Click "Moments" from the dashboard (if visible) or visit `/dashboard/moments`.
 - **Viewing**: You can see highlights from the school.
-- **Adding**: Currently, adding moments is restricted to Admins (feature coming soon).
+- **Adding**: 
+  - Click the **"Share Moment"** button in the header.
+  - Upload up to **3 images or video clips**.
+  - Add a catchy caption and click "Post Moment".
+  - *Note: This feature is currently in "Simulation Mode". It demonstrates the UI flow but does not permanently save to the server yet.*
 
 ## Common Issues & Fixes
 
