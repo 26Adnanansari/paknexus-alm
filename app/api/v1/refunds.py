@@ -3,7 +3,7 @@ from typing import List
 from uuid import UUID
 from datetime import datetime, timezone
 
-from app.core.database import get_db
+from app.core.database import get_master_db_pool as get_db
 from app.api.v1.auth import get_current_user
 from app.models.refund import (
     RefundPolicy, RefundPolicyCreate, RefundCalculationRequest, RefundCalculationResult,
