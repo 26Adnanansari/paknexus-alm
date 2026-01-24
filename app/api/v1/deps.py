@@ -105,14 +105,20 @@ async def get_tenant_db_pool(
         db_url = tenant["supabase_url"]
         
         try:
+             # Define setup callback to enforce schema isolation on every new connection in the pool
+             async def init_tenant_connection(conn):
+                 # Derive schema name from tenant_id: tenant_UUIDNODASHES
+                 schema_name = f"tenant_{tenant_id.replace('-', '')}"
+                 # We assume the schema exists (created by init script/migration)
+                 await conn.execute(f'SET search_path TO "{schema_name}";')
+
              # Basic pool creation - assuming full connection string is stored
-             # TODO: Handle shared_database_schema logic if strictly needed here, 
-             # but keeping it simple for now as per TenantDatabaseFactory logic.
              new_pool = await asyncpg.create_pool(
                  db_url, 
                  min_size=2, 
                  max_size=10, 
-                 command_timeout=30
+                 command_timeout=30,
+                 setup=init_tenant_connection
              )
              TenantDatabaseFactory._tenant_pools[tenant_id] = new_pool
              return new_pool
