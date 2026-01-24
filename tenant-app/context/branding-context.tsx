@@ -27,34 +27,46 @@ const BrandingContext = createContext<BrandingContextType>({
 export const BrandingProvider = ({ children }: { children: React.ReactNode }) => {
     const [branding, setBranding] = useState<BrandingData | null>(null);
     const [loading, setLoading] = useState(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const session = (global as any).session; // We need to access session here, but useSession needs SessionProvider. 
+    // Since this is a context provider, it might be inside SessionProvider or not. 
+    // To be safe, we will fetch school profile if we detect we are likely logged in or after initial load.
+    // Actually, let's keep it simple. If we are on /dashboard, we trigger a fetch.
 
     useEffect(() => {
         const fetchBranding = async () => {
-            // Determine domain/subdomain to fetch branding
             const domain = window.location.hostname;
-
             try {
-                // Use public endpoint
+                // 1. Try public domain branding first (fastest)
                 const res = await api.get(`/public/branding?domain=${domain}`);
-                setBranding(res.data);
+                if (res.data) setBranding(res.data);
 
-                // Apply colors to CSS variables
-                if (res.data.primary_color) {
-                    document.documentElement.style.setProperty('--primary', res.data.primary_color);
-                }
-                if (res.data.secondary_color) {
-                    document.documentElement.style.setProperty('--secondary', res.data.secondary_color);
-                }
-            } catch (err: any) {
-                // Gracefully handle 404 (Domain not found) or 400 (Bad Request)
-                if (err.response && (err.response.status === 404 || err.response.status === 400)) {
-                    // Suppress verbose error for known branding failures
-                    if (process.env.NODE_ENV === 'development') {
-                        console.debug(`[Branding] No custom branding found for ${domain}. Using default.`);
+                // 2. If valid session token exists (localStorage or cookie), try fetching specific school profile
+                // This fixes the issue where generic domains (vercel.app) show generic branding
+                // We rely on api interceptor to attach token if present.
+                const token = typeof window !== 'undefined' ? localStorage.getItem('tenant_token') : null;
+                // Note: We can't easily check httpOnly cookies here without making a request.
+
+                // Let's attempt to fetch authenticated profile if we are in dashboard
+                if (window.location.pathname.startsWith('/dashboard')) {
+                    try {
+                        const profileRes = await api.get('/school/profile');
+                        if (profileRes.data) {
+                            setBranding(prev => ({ ...prev, ...profileRes.data }));
+                        }
+                    } catch {
+                        // Ignore if not logged in
                     }
-                } else {
-                    // Log actual errors (500s, network issues)
-                    console.error('Failed to fetch branding:', err.message || err);
+                }
+
+                if (res.data.primary_color) document.documentElement.style.setProperty('--primary', res.data.primary_color);
+                if (res.data.secondary_color) document.documentElement.style.setProperty('--secondary', res.data.secondary_color);
+
+            } catch (err: any) {
+                if (err.response && (err.response.status === 404 || err.response.status === 400)) {
+                    if (process.env.NODE_ENV === 'development') {
+                        console.debug(`[Branding] No custom branding found for ${domain}.`);
+                    }
                 }
             } finally {
                 setLoading(false);

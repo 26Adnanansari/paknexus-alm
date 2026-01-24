@@ -156,8 +156,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             >
                 <NavButton icon={TrendingUp} label="Home" active={isActive('/dashboard')} onClick={() => router.push('/dashboard')} />
                 <NavButton icon={Users} label="Students" active={isActive('/dashboard/students')} onClick={() => router.push('/dashboard/students')} />
-                <NavButton icon={Calendar} label="Attend" active={isActive('/dashboard/attendance')} onClick={() => router.push('/dashboard/attendance')} />
                 <NavButton icon={Camera} label="Moments" active={isActive('/dashboard/moments')} onClick={() => router.push('/dashboard/moments')} />
+                <NavButton icon={Calendar} label="Attend" active={isActive('/dashboard/attendance')} onClick={() => router.push('/dashboard/attendance')} />
             </nav>
 
             {/* Slide-out Mobile Menu Sidebar Overlay */}

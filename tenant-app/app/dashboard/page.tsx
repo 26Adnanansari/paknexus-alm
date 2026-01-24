@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useBranding } from '@/context/branding-context';
 import {
@@ -20,6 +21,8 @@ import KarmaCard from '@/components/karma/KarmaCard';
 export default function Dashboard() {
     const { branding } = useBranding();
     const { data: session } = useSession();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const router = useRouter();
     const [stats] = React.useState<StatCardProps[]>([
         { label: 'Students', value: '0', limit: '0', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 0, delay: 0 },
         { label: 'Teachers', value: '0', limit: '0', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 0, delay: 0.1 },
@@ -45,6 +48,7 @@ export default function Dashboard() {
                     <p className="text-sm md:text-base text-slate-500 font-medium">Welcome back, {branding?.name}. Here&apos;s what&apos;s new today.</p>
                 </div>
                 <button
+                    onClick={() => router.push('/dashboard/students')}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-200 active:scale-95 touch-target h-[44px] text-sm md:text-base w-full sm:w-auto"
                     aria-label="Enroll new student"
                 >
@@ -69,10 +73,10 @@ export default function Dashboard() {
                 <div className="lg:col-span-2 space-y-6">
                     <h3 className="text-fluid-h3 text-slate-900">Management Shortcuts</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <QuickAction icon={GraduationCap} label="Add Teacher" color="blue" />
-                        <QuickAction icon={Calendar} label="Attendance" color="emerald" />
-                        <QuickAction icon={GraduationCap} label="Generate IDs" color="purple" onClick={() => window.location.href = '/dashboard/id-cards'} />
-                        <QuickAction icon={Settings} label="Settings" color="slate" />
+                        <QuickAction icon={GraduationCap} label="Add Teacher" color="blue" onClick={() => router.push('/dashboard/teachers')} />
+                        <QuickAction icon={Calendar} label="Attendance" color="emerald" onClick={() => router.push('/dashboard/attendance')} />
+                        <QuickAction icon={GraduationCap} label="Generate IDs" color="purple" onClick={() => router.push('/dashboard/id-cards')} />
+                        <QuickAction icon={Settings} label="Settings" color="slate" onClick={() => router.push('/dashboard/settings')} />
                     </div>
 
                     {/* Chart Placeholder / Performance */}
