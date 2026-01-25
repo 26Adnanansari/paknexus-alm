@@ -1,15 +1,17 @@
-import numpy as np
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Try importing face_recognition, handle if missing
+# Try importing face_recognition and numpy, handle if missing
+FACE_LIB_AVAILABLE = False
 try:
+    import numpy as np
     import face_recognition
     FACE_LIB_AVAILABLE = True
-except ImportError:
-    FACE_LIB_AVAILABLE = False
-    logger.warning("face_recognition library not found. Face ID features will be disabled.")
+except ImportError as e:
+    logger.warning(f"Face ID libraries not found ({e}). Face ID features will be disabled.")
+    # Define dummy numpy if needed or handle logic checks later
+
 
 class FaceService:
     @staticmethod
