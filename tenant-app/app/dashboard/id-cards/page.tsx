@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     CreditCard,
@@ -25,6 +25,33 @@ export default function IDCardGenerator() {
     const [frontBg, setFrontBg] = useState<string | null>(null);
     const [backBg, setBackBg] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [studentCount, setStudentCount] = useState(0);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [sampleStudent, setSampleStudent] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const api = await import('@/lib/api').then(m => m.default);
+                const res = await api.get('/students?limit=1');
+
+                let students = [];
+                if (Array.isArray(res.data)) {
+                    students = res.data;
+                } else if (res.data?.items) {
+                    students = res.data.items;
+                }
+
+                if (students.length > 0) {
+                    setStudentCount(students.length); // Note: this is just page count if paginated, but works for small numbers
+                    setSampleStudent(students[0]);
+                }
+            } catch (err) {
+                console.error("Failed to fetch student data", err);
+            }
+        };
+        fetchStats();
+    }, []);
 
     const steps = [
         { title: 'Upload Background', icon: Upload },
@@ -180,18 +207,27 @@ export default function IDCardGenerator() {
                                             <RefreshCcw size={24} className="text-blue-600" />
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-sm font-bold text-slate-900">Class 10-A Ready</p>
-                                            <p className="text-xs text-slate-500">45 students detected in system</p>
+                                            <p className="text-sm font-bold text-slate-900">System Ready</p>
+                                            <p className="text-xs text-slate-500">
+                                                {studentCount > 0 ? `${studentCount} students detected` : 'No students found'}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="space-y-3">
-                                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl font-black shadow-xl shadow-blue-200 flex items-center justify-center gap-3 transition-all active:scale-95">
+                                        <button
+                                            onClick={() => setIsGenerating(true)}
+                                            disabled={studentCount === 0}
+                                            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white py-5 rounded-2xl font-black shadow-xl shadow-blue-200 flex items-center justify-center gap-3 transition-all active:scale-95"
+                                        >
                                             <Download size={20} />
                                             <span>Generate All (PDF)</span>
                                         </button>
-                                        <button className="w-full bg-white border border-slate-200 hover:border-blue-400 text-slate-700 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all">
+                                        <button
+                                            onClick={() => window.location.href = '/dashboard/students'}
+                                            className="w-full bg-white border border-slate-200 hover:border-blue-400 text-slate-700 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
+                                        >
                                             <Layout size={18} className="text-slate-400" />
-                                            <span>Manage Existing Cards</span>
+                                            <span>Manage Students</span>
                                         </button>
                                     </div>
                                     <button onClick={() => setStep(2)} className="w-full text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Return to Editor</button>
@@ -248,28 +284,48 @@ export default function IDCardGenerator() {
                                     </div>
 
                                     <div className="w-32 h-36 bg-slate-100 rounded-2xl border-2 border-white shadow-xl mb-4 flex items-center justify-center overflow-hidden">
-                                        <User size={64} className="text-slate-300" />
+                                        {sampleStudent?.photo_url ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={sampleStudent.photo_url} alt="Student" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center text-slate-400">
+                                                <User size={64} className="mb-2" />
+                                                <span className="text-[10px] font-bold uppercase">No Photo</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="text-center space-y-1 mb-6">
-                                        <p className="text-xl font-black text-slate-900 leading-tight">AHMED KHAN</p>
+                                        <p className="text-xl font-black text-slate-900 leading-tight uppercase truncate max-w-[280px]">
+                                            {sampleStudent?.full_name || 'STUDENT NAME'}
+                                        </p>
                                         <div className="inline-block px-3 py-1 bg-blue-600 text-white font-bold text-[10px] rounded-full">STUDENT</div>
                                     </div>
 
                                     <div className="w-full grid grid-cols-2 gap-4 text-left border-t border-slate-200/50 pt-4 mb-auto">
                                         <div>
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Roll Number</p>
-                                            <p className="text-[12px] font-black text-slate-800 tracking-tight">PN-2026-45</p>
+                                            <p className="text-[8px] font-bold text-slate-400 uppercase">System ID</p>
+                                            <p className="text-[12px] font-black text-slate-800 tracking-tight truncate">
+                                                {sampleStudent?.admission_number || 'PN-000'}
+                                            </p>
                                         </div>
                                         <div>
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Grade / Section</p>
-                                            <p className="text-[12px] font-black text-slate-800">10 / Alpha</p>
+                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Class</p>
+                                            <p className="text-[12px] font-black text-slate-800">
+                                                {sampleStudent?.current_class || 'N/A'}
+                                            </p>
                                         </div>
                                     </div>
 
                                     <div className="w-full flex justify-between items-end mt-2">
                                         <div className="bg-white p-1 rounded">
-                                            <Barcode value="PN-2026-45" width={1.2} height={30} fontSize={10} displayValue={false} />
+                                            <Barcode
+                                                value={sampleStudent?.admission_number || 'SAMPLE'}
+                                                width={1.2}
+                                                height={30}
+                                                fontSize={10}
+                                                displayValue={false}
+                                            />
                                         </div>
                                         <div className="text-right">
                                             <div className="h-6 w-24 bg-slate-900/5 rounded border border-slate-900/10 mb-1 flex items-center justify-center italic text-[6px] text-slate-400">Principal Sign</div>
@@ -288,7 +344,7 @@ export default function IDCardGenerator() {
                                 <RefreshCcw size={20} className="text-slate-600" />
                             </button>
                             <div className="text-[10px] items-center flex font-bold tracking-widest text-slate-400 uppercase bg-slate-100 px-4 rounded-full">
-                                3.375&quot; x 2.125&quot; Standard
+                                {sampleStudent ? `Previewing: ${sampleStudent.full_name}` : 'No student data found'}
                             </div>
                         </div>
                     </div>

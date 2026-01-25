@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
     CheckCircle, XCircle, Clock, AlertTriangle, Loader2,
@@ -212,8 +212,8 @@ export default function AppealsManagementPage() {
                             </div>
                             <div className="text-right">
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${appeal.status === 'pending' ? 'bg-orange-200 text-orange-800' :
-                                        appeal.status === 'approved' ? 'bg-green-200 text-green-800' :
-                                            'bg-red-200 text-red-800'
+                                    appeal.status === 'approved' ? 'bg-green-200 text-green-800' :
+                                        'bg-red-200 text-red-800'
                                     }`}>
                                     {appeal.status.toUpperCase()}
                                 </span>
@@ -395,8 +395,8 @@ export default function AppealsManagementPage() {
                             key={status}
                             onClick={() => setFilter(status)}
                             className={`flex-1 px-4 py-2 rounded-lg font-semibold transition-colors ${filter === status
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-600 hover:bg-slate-100'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-slate-600 hover:bg-slate-100'
                                 }`}
                         >
                             {status.charAt(0).toUpperCase() + status.slice(1)}

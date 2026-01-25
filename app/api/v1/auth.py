@@ -1,7 +1,8 @@
 from datetime import timedelta, datetime
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from app.core.rate_limit import limiter
 from uuid import UUID
 import asyncpg
 import secrets
@@ -22,7 +23,9 @@ class Token(BaseModel):
     tenant_id: str | None = None
 
 @router.post("/login/access-token", response_model=Token)
+@limiter.limit("5/minute")
 async def login_access_token(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     pool: asyncpg.Pool = Depends(get_master_db_pool)
 ) -> Any:
@@ -110,8 +113,10 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 @router.post("/forgot-password")
+@limiter.limit("3/minute")
 async def forgot_password(
-    request: ForgotPasswordRequest,
+    request: Request,
+    request_data: ForgotPasswordRequest,
     pool: asyncpg.Pool = Depends(get_master_db_pool)
 ) -> Any:
     """
@@ -122,12 +127,12 @@ async def forgot_password(
     
     async with pool.acquire() as conn:
         # Check admin first
-        user = await conn.fetchrow("SELECT user_id, full_name, 'admin' as type FROM admin_users WHERE email = $1", request.email)
+        user = await conn.fetchrow("SELECT user_id, full_name, 'admin' as type FROM admin_users WHERE email = $1", request_data.email)
         table = "admin_users"
         
         if not user:
             # Check tenant user
-            user = await conn.fetchrow("SELECT user_id, full_name, 'tenant' as type FROM tenant_users WHERE email = $1", request.email)
+            user = await conn.fetchrow("SELECT user_id, full_name, 'tenant' as type FROM tenant_users WHERE email = $1", request_data.email)
             table = "tenant_users"
         
         if not user:
@@ -143,7 +148,7 @@ async def forgot_password(
         
         # Send email
         await send_password_recovery_otp(
-            email_to=request.email,
+            email_to=request_data.email,
             user_name=user['full_name'] or "User",
             otp=otp
         )
@@ -151,8 +156,10 @@ async def forgot_password(
     return {"message": "Verification code sent to your email."}
 
 @router.post("/reset-password")
+@limiter.limit("5/minute")
 async def reset_password(
-    request: ResetPasswordRequest,
+    request: Request,
+    request_data: ResetPasswordRequest,
     pool: asyncpg.Pool = Depends(get_master_db_pool)
 ) -> Any:
     """
@@ -162,25 +169,25 @@ async def reset_password(
         # Check admin first
         user = await conn.fetchrow(
             "SELECT user_id, reset_token, reset_token_expiry, 'admin' as type FROM admin_users WHERE email = $1", 
-            request.email
+            request_data.email
         )
         table = "admin_users"
         
         if not user:
             user = await conn.fetchrow(
                 "SELECT user_id, reset_token, reset_token_expiry, 'tenant' as type FROM tenant_users WHERE email = $1", 
-                request.email
+                request_data.email
             )
             table = "tenant_users"
             
-        if not user or user['reset_token'] != request.otp:
+        if not user or user['reset_token'] != request_data.otp:
             raise HTTPException(status_code=400, detail="Invalid or expired verification code.")
             
         if user['reset_token_expiry'] < datetime.now():
             raise HTTPException(status_code=400, detail="Verification code has expired.")
             
         # Update password and clear token
-        new_hash = SecurityService.get_password_hash(request.new_password)
+        new_hash = SecurityService.get_password_hash(request_data.new_password)
         await conn.execute(
             f"UPDATE {table} SET password_hash = $1, reset_token = NULL, reset_token_expiry = NULL WHERE user_id = $2",
             new_hash, user['user_id']

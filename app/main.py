@@ -33,11 +33,21 @@ async def lifespan(app: FastAPI):
     await TenantDatabaseFactory.close_all_tenant_pools()
     logger.info("Application shutdown complete")
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from app.core.rate_limit import limiter
+
 app = FastAPI(
     title="Multi-Tenant SaaS Control Plane",
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Initialize Rate Limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Add CORS middleware
 app.add_middleware(

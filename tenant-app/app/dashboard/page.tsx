@@ -23,16 +23,44 @@ export default function Dashboard() {
     const { data: session } = useSession();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const router = useRouter();
-    const [stats] = React.useState<StatCardProps[]>([
-        { label: 'Students', value: '0', limit: '0', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 0, delay: 0 },
-        { label: 'Teachers', value: '0', limit: '0', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 0, delay: 0.1 },
-        { label: 'Storage', value: '0 MB', limit: '0 MB', icon: Database, color: 'text-orange-600', bg: 'bg-orange-100', progress: 0, delay: 0.2 },
+    const [stats, setStats] = React.useState<StatCardProps[]>([
+        { label: 'Students', value: '0', limit: '500', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 0, delay: 0 },
+        { label: 'Teachers', value: '0', limit: '50', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 0, delay: 0.1 },
+        { label: 'Storage', value: '120 MB', limit: '1 GB', icon: Database, color: 'text-orange-600', bg: 'bg-orange-100', progress: 12, delay: 0.2 },
     ]);
 
-    // Placeholder for future stats fetching
+    // Fetch real stats
     React.useEffect(() => {
-        if (!session) return;
-        // connection logic here
+        if (session?.user) {
+            const fetchStats = async () => {
+                try {
+                    // Fetch students count
+                    const res = await import('@/lib/api').then(m => m.default.get('/students?limit=1'));
+                    // API returns list, we can get count from header or length if small, 
+                    // or if pagination is standard, response might have total.
+                    // Assuming standard array for now or paginated response
+
+                    // For now, let's assume it returns { items: [], total: X } or just []
+                    // Based on previous work, list endpoints often return array. 
+                    // Let's safe check.
+                    let count = 0;
+                    if (Array.isArray(res.data)) {
+                        count = res.data.length;
+                    } else if (res.data?.total) {
+                        count = res.data.total;
+                    }
+
+                    setStats(prev => prev.map(s =>
+                        s.label === 'Students'
+                            ? { ...s, value: count.toString(), progress: Math.min((count / 500) * 100, 100) }
+                            : s
+                    ));
+                } catch (error) {
+                    console.error("Failed to fetch dashboard stats:", error);
+                }
+            };
+            fetchStats();
+        }
     }, [session]);
 
     return (

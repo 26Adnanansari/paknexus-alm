@@ -59,20 +59,50 @@ async def get_current_admin(
             )
         return admin["user_id"]
 
+from datetime import datetime, timezone
+
 async def get_current_school_user(
     user_id: UUID = Depends(get_current_user_id),
     pool: asyncpg.Pool = Depends(get_master_db_pool)
 ) -> dict:
     async with pool.acquire() as conn:
-        user = await conn.fetchrow(
-            "SELECT user_id, tenant_id, email, role FROM tenant_users WHERE user_id = $1 AND is_active = TRUE",
-            user_id
-        )
+        # Fetch user AND tenant status
+        user = await conn.fetchrow("""
+            SELECT 
+                u.user_id, u.tenant_id, u.email, u.role,
+                t.status as tenant_status, t.subscription_expiry
+            FROM tenant_users u
+            JOIN tenants t ON u.tenant_id = t.tenant_id
+            WHERE u.user_id = $1 AND u.is_active = TRUE
+        """, user_id)
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="School user not found",
             )
+            
+        # Security Check: Tenant Status
+        tenant_status = user['tenant_status']
+        expiry = user['subscription_expiry']
+        
+        if tenant_status in ['suspended', 'churned', 'locked']:
+             raise HTTPException(
+                 status_code=status.HTTP_403_FORBIDDEN,
+                 detail=f"School account is {tenant_status}. Please contact support."
+             )
+             
+        # Security Check: Trial Expiry
+        # We allow 'active' users even if expiry is past (grace period logic usually handles this, 
+        # but for strict trial enforcement we check trial specifically)
+        if tenant_status == 'trial' and expiry:
+            now = datetime.now(timezone.utc)
+            if now > expiry:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED, # 402 is appropriate for payment
+                    detail="Trial period has expired. Please upgrade your plan to continue."
+                )
+
         return dict(user)
 
 from app.core.database import TenantDatabaseFactory

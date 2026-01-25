@@ -63,7 +63,7 @@ export default function KarmaCard() {
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2 bg-white/10 px-2.5 py-1 rounded-full backdrop-blur-md">
                         <Trophy className="h-3.5 w-3.5 text-yellow-300" />
-                        <span className="text-xs font-bold">Karma Points</span>
+                        <span className="text-xs font-bold">Reputation Score</span>
                     </div>
                 </div>
 
