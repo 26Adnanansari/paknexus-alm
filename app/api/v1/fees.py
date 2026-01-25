@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Body
+from typing import Optional, List
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel
 import asyncpg
 
@@ -9,125 +9,311 @@ from app.api.v1.deps import get_current_school_user, get_tenant_db_pool
 
 router = APIRouter()
 
-# ---/ Models /---
-class FeeStructureBase(BaseModel):
-    student_id: UUID
-    academic_year: str
-    fee_type: str
+# --- Models ---
+
+class FeeHeadCreate(BaseModel):
+    head_name: str
+
+class ClassFeeCreate(BaseModel):
+    class_name: str
+    fee_head_id: UUID
     amount: float
-    due_date: date
+    frequency: str = "monthly"
 
-class FeeStructureCreate(FeeStructureBase):
-    pass
-
-class FeeStructureResponse(FeeStructureBase):
-    fee_structure_id: UUID
-    created_at: date
-
-class FeePaymentBase(BaseModel):
+class ScholarshipAssign(BaseModel):
     student_id: UUID
-    fee_structure_id: UUID
-    payment_date: date
-    amount_paid: float
-    payment_method: str
+    discount_percent: float
+    type: str = "merit"
+
+class GenerateInvoices(BaseModel):
+    month_year: str # e.g. "2025-09"
+    due_date: date
+    class_name: Optional[str] = None # Generate for specific class or all
+
+class PaymentRecord(BaseModel):
+    invoice_id: UUID
+    amount: float
+    method: str = "cash"
     remarks: Optional[str] = None
 
-class FeePaymentCreate(FeePaymentBase):
-    pass
-
-class FeePaymentResponse(FeePaymentBase):
-    payment_id: UUID
-    receipt_number: Optional[str] = None
-    created_at: date
-
-# ---/ Endpoints /---
-
-@router.get("/outstanding", response_model=List[dict])
-async def get_outstanding_fees(
-    class_name: Optional[str] = None,
+# --- Tables Init Helper ---
+@router.post("/system/init-tables")
+async def init_fee_tables(
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
+    """One-time setup to create Fee Management tables if they don't exist."""
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS fee_heads (
+                head_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                head_name VARCHAR(100) NOT NULL UNIQUE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
+            CREATE TABLE IF NOT EXISTS class_fee_structure (
+                structure_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                class_name VARCHAR(50) NOT NULL, 
+                fee_head_id UUID REFERENCES fee_heads(head_id) ON DELETE CASCADE,
+                amount DECIMAL(10,2) NOT NULL,
+                frequency VARCHAR(20) DEFAULT 'monthly',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(class_name, fee_head_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS student_scholarships (
+                scholarship_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                student_id UUID REFERENCES students(student_id),
+                discount_percent DECIMAL(5,2) NOT NULL CHECK (discount_percent >= 0 AND discount_percent <= 100),
+                type VARCHAR(50) DEFAULT 'merit',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(student_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS fee_invoices (
+                invoice_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                student_id UUID REFERENCES students(student_id),
+                month_year VARCHAR(20), 
+                total_amount DECIMAL(10,2) NOT NULL,
+                scholarship_amount DECIMAL(10,2) DEFAULT 0,
+                payable_amount DECIMAL(10,2) NOT NULL,
+                status VARCHAR(20) DEFAULT 'unpaid',
+                paid_amount DECIMAL(10,2) DEFAULT 0,
+                due_date DATE,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(student_id, month_year)
+            );
+            
+            -- Also link payments to invoice
+            ALTER TABLE fee_payments ADD COLUMN IF NOT EXISTS invoice_id UUID REFERENCES fee_invoices(invoice_id);
+        """)
+        return {"message": "Fee tables initialized successfully"}
+
+# --- Fee Head Management ---
+
+@router.post("/heads")
+async def create_fee_head(
+    head: FeeHeadCreate,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    async with pool.acquire() as conn:
+        id = await conn.fetchval(
+            "INSERT INTO fee_heads (head_name) VALUES ($1) ON CONFLICT (head_name) DO NOTHING RETURNING head_id",
+            head.head_name
+        )
+        if not id:
+            id = await conn.fetchval("SELECT head_id FROM fee_heads WHERE head_name = $1", head.head_name)
+        return {"head_id": id, "head_name": head.head_name}
+
+@router.get("/heads")
+async def list_fee_heads(pool: asyncpg.Pool = Depends(get_tenant_db_pool)):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT * FROM fee_heads ORDER BY head_name")
+        return [dict(r) for r in rows]
+
+# --- Class Fee Structure ---
+
+@router.post("/structure")
+async def set_class_fee(
+    data: ClassFeeCreate,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO class_fee_structure (class_name, fee_head_id, amount, frequency)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (class_name, fee_head_id) DO UPDATE 
+            SET amount = $3, frequency = $4
+        """, data.class_name, data.fee_head_id, data.amount, data.frequency)
+        return {"message": "Class fee updated"}
+
+@router.get("/structure/{class_name}")
+async def get_class_structure(
+    class_name: str, 
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT s.*, h.head_name 
+            FROM class_fee_structure s
+            JOIN fee_heads h ON s.fee_head_id = h.head_id
+            WHERE s.class_name = $1
+        """, class_name)
+        return [dict(r) for r in rows]
+
+# --- Scholarship ---
+
+@router.post("/scholarship")
+async def assign_scholarship(
+    data: ScholarshipAssign,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO student_scholarships (student_id, discount_percent, type)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (student_id) DO UPDATE 
+            SET discount_percent = $2, type = $3
+        """, data.student_id, data.discount_percent, data.type)
+        return {"message": "Scholarship assigned"}
+
+# --- Invoice Generation ---
+
+@router.post("/generate")
+async def generate_invoices(
+    data: GenerateInvoices,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
     """
-    Get list of students with outstanding fees.
-    Utilizes the 'v_outstanding_fees' view created in schema template.
+    Generate monthly invoices for students based on their class fees and scholarships.
     """
     async with pool.acquire() as conn:
-        query = """
-            SELECT s.full_name, s.admission_number, s.current_class, v.*
-            FROM v_outstanding_fees v
-            JOIN students s ON v.student_id = s.student_id
-            WHERE 1=1
-        """
+        # Get target students
+        query = "SELECT student_id, current_class FROM students WHERE status = 'active'"
         params = []
-        if class_name:
-            query += " AND s.current_class = $1"
-            params.append(class_name)
+        if data.class_name:
+            query += " AND current_class = $1"
+            params.append(data.class_name)
+            
+        students = await conn.fetch(query, *params)
         
-        query += " ORDER BY v.due_date ASC"
+        generated_count = 0
         
-        rows = await conn.fetch(query, *params)
-        return [dict(row) for row in rows]
+        for student in students:
+            stu_id = student['student_id']
+            cls = student['current_class']
+            
+            # 1. Calculate Base Fee for Class
+            # Only consider 'monthly' fees for this generation
+            # TODO: Improve logic for one-time fees
+            fees = await conn.fetchval("""
+                SELECT COALESCE(SUM(amount), 0) 
+                FROM class_fee_structure 
+                WHERE class_name = $1 AND frequency = 'monthly'
+            """, cls) or 0
+            
+            if fees <= 0: continue
+            
+            # 2. Get Scholarship
+            scholarship_pct = await conn.fetchval("""
+                SELECT discount_percent FROM student_scholarships WHERE student_id = $1
+            """, stu_id) or 0
+            
+            scholarship_amt = fees * (float(scholarship_pct) / 100.0)
+            payable = fees - scholarship_amt
+            
+            # 3. Create Invoice
+            try:
+                await conn.execute("""
+                    INSERT INTO fee_invoices 
+                    (student_id, month_year, total_amount, scholarship_amount, payable_amount, due_date)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    ON CONFLICT (student_id, month_year) DO NOTHING 
+                """, stu_id, data.month_year, fees, scholarship_amt, payable, data.due_date)
+                generated_count += 1
+            except:
+                pass # Already exists or error
+                
+        return {"message": f"Generated {generated_count} invoices for {data.month_year}"}
 
-@router.post("/structure", response_model=dict)
-async def create_fee_structure(
-    fee: FeeStructureCreate,
-    current_user: dict = Depends(get_current_school_user),
+class AssignAdHocFee(BaseModel):
+    target_type: str # 'student' or 'class'
+    target_id: str # student_id or class_name
+    fee_head_id: UUID
+    amount: float
+    due_date: date
+    remarks: Optional[str] = None
+
+@router.post("/assign-adhoc")
+async def assign_adhoc_fee(
+    data: AssignAdHocFee,
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    """Assign a fee (Tuition, Transport, etc.) to a student."""
+    """
+    Assign a one-time fee (Picnic, Admission, Fine) to a Student or whole Class.
+    """
     async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """
-            INSERT INTO fee_structure (student_id, academic_year, fee_type, amount, due_date)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING fee_structure_id
-            """,
-            fee.student_id, fee.academic_year, fee.fee_type, fee.amount, fee.due_date
-        )
-        return {"fee_structure_id": row['fee_structure_id'], "message": "Fee structure assigned"}
-
-@router.post("/payment", response_model=dict)
-async def record_payment(
-    payment: FeePaymentCreate,
-    current_user: dict = Depends(get_current_school_user),
-    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
-):
-    """Record a payment against a fee structure."""
-    async with pool.acquire() as conn:
-        # Generate receipt number (Simple Logic for MVP: REC-{TIMESTAMP})
-        import time
-        receipt_no = f"REC-{int(time.time())}"
+        students = []
         
-        row = await conn.fetchrow(
-            """
-            INSERT INTO fee_payments (student_id, fee_structure_id, payment_date, amount_paid, payment_method, receipt_number, remarks, collected_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING payment_id
-            """,
-            payment.student_id, payment.fee_structure_id, payment.payment_date, 
-            payment.amount_paid, payment.payment_method, receipt_no, payment.remarks,
-            current_user['user_id'] # Assuming staff_id matches user_id roughly or we need look up
-        )
-        return {"payment_id": row['payment_id'], "receipt_number": receipt_no, "message": "Payment recorded"}
+        if data.target_type == 'student':
+            students = [{'student_id': data.target_id}]
+        elif data.target_type == 'class':
+            rows = await conn.fetch("SELECT student_id FROM students WHERE current_class = $1 AND status = 'active'", data.target_id)
+            students = [dict(r) for r in rows]
+            
+        count = 0
+        for stu in students:
+            # Create Invoice for this specific fee
+            # We treat ad-hoc fees as individual invoices for tracking? 
+            # Or append to monthly? 
+            # Better to create separate invoice for clarity: "Picnic Fee - Sep 2025"
+            
+            # Get Head Name
+            head_name = await conn.fetchval("SELECT head_name FROM fee_heads WHERE head_id = $1", data.fee_head_id)
+            inv_title = f"{head_name}"
+            if data.remarks: inv_title += f" - {data.remarks}"
+            
+            await conn.execute("""
+                INSERT INTO fee_invoices 
+                (student_id, month_year, total_amount, scholarship_amount, payable_amount, due_date, status)
+                VALUES ($1, $2, $3, 0, $3, $4, 'unpaid')
+            """, stu['student_id'], inv_title, data.amount, data.due_date)
+            count += 1
+            
+        return {"message": f"Assigned fee to {count} students"}
 
-@router.get("/history/{student_id}", response_model=List[dict])
-async def get_student_fee_history(
+# --- Collection ---
+
+@router.get("/invoices/{student_id}")
+async def get_student_invoices(
     student_id: UUID,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM fee_invoices 
+            WHERE student_id = $1 
+            ORDER BY month_year DESC
+        """, student_id)
+        return [dict(r) for r in rows]
+
+@router.post("/collect")
+async def collect_fee(
+    payment: PaymentRecord,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    """Get fee history for a specific student."""
     async with pool.acquire() as conn:
-        rows = await conn.fetch(
-            """
-            SELECT fs.fee_type, fs.amount as total_amount, fs.due_date, 
-                   fp.amount_paid, fp.payment_date, fp.receipt_number, fp.payment_method
-            FROM fee_structure fs
-            LEFT JOIN fee_payments fp ON fs.fee_structure_id = fp.fee_structure_id
-            WHERE fs.student_id = $1
-            ORDER BY fs.due_date DESC
-            """,
-            student_id
-        )
-        return [dict(row) for row in rows]
+        async with conn.transaction():
+            # 1. Update Invoice
+            invoice = await conn.fetchrow("SELECT * FROM fee_invoices WHERE invoice_id = $1 FOR UPDATE", payment.invoice_id)
+            if not invoice:
+                raise HTTPException(status_code=404, detail="Invoice not found")
+                
+            new_paid = float(invoice['paid_amount']) + payment.amount
+            payable = float(invoice['payable_amount'])
+            
+            status = 'partial'
+            if new_paid >= payable:
+                status = 'paid'
+            elif new_paid > 0:
+                status = 'partial'
+            else:
+                status = 'unpaid' # Shouldn't happen on payment
+                
+            await conn.execute("""
+                UPDATE fee_invoices 
+                SET paid_amount = $1, status = $2
+                WHERE invoice_id = $3
+            """, new_paid, status, payment.invoice_id)
+            
+            # 2. Record Payment Log
+            await conn.execute("""
+                INSERT INTO fee_payments (
+                    student_id, amount_paid, payment_date, payment_method, 
+                    created_at, invoice_id, collected_by, remarks
+                )
+                VALUES ($1, $2, CURRENT_DATE, $3, NOW(), $4, $5, $6)
+            """, invoice['student_id'], payment.amount, payment.method, payment.invoice_id, current_user['user_id'], payment.remarks)
+            
+            return {"message": "Payment recorded successfully", "new_status": status}
