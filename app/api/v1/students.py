@@ -14,11 +14,12 @@ router = APIRouter()
 class StudentCreate(BaseModel):
     full_name: str
     admission_number: str
+    admission_date: date  # REQUIRED by schema
     date_of_birth: date
     gender: str
     current_class: Optional[str] = None
     father_name: Optional[str] = None
-    contact_phone: Optional[str] = None
+    father_phone: Optional[str] = None  # Fixed to match schema column name
 
 class StudentResponse(StudentCreate):
     student_id: UUID
@@ -69,11 +70,11 @@ async def create_student(
 
         row = await conn.fetchrow(
             """
-            INSERT INTO students (full_name, admission_number, date_of_birth, gender, current_class, father_name, father_phone)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO students (full_name, admission_number, admission_date, date_of_birth, gender, current_class, father_name, father_phone)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             """,
-            student.full_name, student.admission_number, student.date_of_birth, 
-            student.gender, student.current_class, student.father_name, student.contact_phone
+            student.full_name, student.admission_number, student.admission_date, student.date_of_birth, 
+            student.gender, student.current_class, student.father_name, student.father_phone
         )
         return dict(row)

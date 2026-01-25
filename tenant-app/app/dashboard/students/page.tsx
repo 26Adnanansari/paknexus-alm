@@ -31,11 +31,12 @@ export default function StudentsPage() {
     const [newStudent, setNewStudent] = useState({
         full_name: '',
         admission_number: '',
+        admission_date: '',  // ADDED: Required by backend
         date_of_birth: '',
         gender: 'Male',
         current_class: '',
         father_name: '',
-        contact_phone: ''
+        father_phone: ''  // FIXED: Renamed from contact_phone
     });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export default function StudentsPage() {
         const payload = {
             ...newStudent,
             father_name: newStudent.father_name.trim() || null,
-            contact_phone: newStudent.contact_phone.trim() || null,
+            father_phone: newStudent.father_phone.trim() || null,  // FIXED: Renamed field
             current_class: newStudent.current_class.trim() || null,
             // Ensure gender matches exactly what backend expects (Title Case often)
             gender: newStudent.gender
@@ -81,8 +82,8 @@ export default function StudentsPage() {
             await api.post('/students', payload);
             setIsAddOpen(false);
             setNewStudent({
-                full_name: '', admission_number: '', date_of_birth: '',
-                gender: 'Male', current_class: '', father_name: '', contact_phone: ''
+                full_name: '', admission_number: '', admission_date: '', date_of_birth: '',
+                gender: 'Male', current_class: '', father_name: '', father_phone: ''
             });
             fetchStudents(); // Refresh list
             // toast.success("Student added successfully");
@@ -321,6 +322,10 @@ export default function StudentsPage() {
                                         <input required className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.admission_number} onChange={e => setNewStudent({ ...newStudent, admission_number: e.target.value })} placeholder="ADM-001" />
                                     </div>
                                     <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Admission Date <span className="text-red-500">*</span></label>
+                                        <input type="date" required className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.admission_date} onChange={e => setNewStudent({ ...newStudent, admission_date: e.target.value })} />
+                                    </div>
+                                    <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-700">Date of Birth <span className="text-red-500">*</span></label>
                                         <input type="date" required className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.date_of_birth} onChange={e => setNewStudent({ ...newStudent, date_of_birth: e.target.value })} />
                                     </div>
@@ -344,8 +349,8 @@ export default function StudentsPage() {
                                         <input className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.father_name} onChange={e => setNewStudent({ ...newStudent, father_name: e.target.value })} placeholder="Parent Name" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-700">Contact Phone</label>
-                                        <input className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.contact_phone} onChange={e => setNewStudent({ ...newStudent, contact_phone: e.target.value })} placeholder="+1 234 567 890" />
+                                        <label className="text-sm font-bold text-slate-700">Father&apos;s Phone</label>
+                                        <input className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.father_phone} onChange={e => setNewStudent({ ...newStudent, father_phone: e.target.value })} placeholder="+92 300 1234567" />
                                     </div>
                                 </div>
 

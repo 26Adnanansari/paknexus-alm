@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { School, Loader2, User, Lock, ArrowRight } from 'lucide-react';
+import { School, Loader2, User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
@@ -13,6 +13,7 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false); // Password visibility toggle
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -100,7 +101,7 @@ export default function LoginPage() {
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -108,6 +109,14 @@ export default function LoginPage() {
                                     placeholder="••••••••"
                                     aria-label="Password"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-blue-400 transition-colors focus:outline-none"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                                </button>
                             </div>
                         </div>
 
@@ -134,7 +143,16 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    <p className="text-center text-xs text-slate-500 mt-8">
+                    <div className="text-center mt-6">
+                        <p className="text-slate-400 text-sm">
+                            Don&apos;t have an account?{' '}
+                            <a href="/signup" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
+                                Sign up
+                            </a>
+                        </p>
+                    </div>
+
+                    <p className="text-center text-xs text-slate-500 mt-6">
                         Protected by PakNexus Security
                     </p>
                 </div>
