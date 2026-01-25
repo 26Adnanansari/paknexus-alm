@@ -114,6 +114,9 @@ app.include_router(staff.router, prefix=f"{settings.API_V1_STR}/staff", tags=["s
 app.include_router(attendance.router, prefix=f"{settings.API_V1_STR}/attendance", tags=["attendance"])
 app.include_router(curriculum.router, prefix=f"{settings.API_V1_STR}/curriculum", tags=["curriculum"])
 
+from app.api.v1 import biometrics
+app.include_router(biometrics.router, prefix=f"{settings.API_V1_STR}/biometrics", tags=["biometrics"])
+
 from app.api.v1 import refunds
 app.include_router(refunds.router, prefix=f"{settings.API_V1_STR}/refunds", tags=["refunds"])
 

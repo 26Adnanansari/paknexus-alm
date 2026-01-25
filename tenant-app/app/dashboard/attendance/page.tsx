@@ -7,6 +7,7 @@ import { Calendar, Check, X, Clock, Save, Scan, QrCode, Smartphone, Camera } fro
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from 'sonner';
 import QRScanner from '@/components/attendance/QRScanner';
+import FaceScanner from '@/components/attendance/FaceScanner';
 
 interface AttendanceRecord {
     student_id: string;
@@ -79,7 +80,6 @@ export default function AttendancePage() {
                 toast.info(`Already marked present: ${students[studentIndex].full_name}`);
             }
         } else {
-            // Optional: Debounce this to avoid error spam
             // toast.error(`Student not found: ${decodedText}`);
         }
     };
@@ -100,6 +100,30 @@ export default function AttendancePage() {
         } else {
             toast.error(`Student not found for code: ${barcodeInput}`);
             setBarcodeInput('');
+        }
+    };
+
+    // New Face Scan Handler
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleFaceMatch = (result: any) => {
+        if (!result.match) return;
+
+        // If it's a student, mark them present
+        if (result.user_type === 'student') {
+            const studentIndex = students.findIndex(s => s.student_id === result.user_id);
+            if (studentIndex >= 0) {
+                if (students[studentIndex].status !== 'present') {
+                    markStatus(studentIndex, 'present');
+                    toast.success(`Face Identified: ${result.name} (Marked Present)`);
+                } else {
+                    toast.info(`Already marked present: ${result.name}`);
+                }
+            } else {
+                toast.warning(`Student identified (${result.name}) but not found in current attendance list.`);
+            }
+        } else {
+            // Staff or other
+            toast.info(`Staff Member Identified: ${result.name}`);
         }
     };
 
@@ -206,25 +230,18 @@ export default function AttendancePage() {
             )}
 
             {scannerMode === 'face' && (
-                <div className="bg-purple-900 rounded-3xl p-8 text-white shadow-lg shadow-purple-200 flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in slide-in-from-top-4 relative overflow-hidden">
+                <div className="bg-purple-900 rounded-3xl p-8 text-white shadow-lg shadow-purple-200 flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in slide-in-from-top-4 relative overflow-hidden min-h-[500px]">
                     <div className="absolute inset-0 bg-[url('https://res.cloudinary.com/demo/image/upload/v1675704176/samples/ecommerce/accessories-bag.jpg')] opacity-10 bg-cover bg-center blur-sm" />
 
-                    <div className="relative z-10 w-full max-w-md aspect-video bg-black rounded-2xl border-4 border-white/20 shadow-2xl overflow-hidden flex items-center justify-center">
-                        {/* Placeholder for camera stream */}
-                        <Smartphone size={64} className="text-white/50 animate-pulse" />
-                        <p className="absolute bottom-4 text-sm font-medium text-white/70">Initializing Camera Module...</p>
-
-                        {/* Face Detection Overlay Simulation */}
-                        <div className="absolute inset-0 border-2 border-green-400/50 m-12 rounded-lg animate-pulse" />
-                        <div className="absolute top-4 left-4 bg-green-500/80 px-2 py-1 rounded text-[10px] font-bold">FACE_DETECT_ACTIVE</div>
+                    <div className="relative z-10 w-full max-w-md">
+                        <FaceScanner onMatch={handleFaceMatch} />
                     </div>
 
                     <div className="relative z-10 space-y-2">
                         <h3 className="text-xl font-bold">Mobile Face Recognition</h3>
                         <p className="text-purple-200 text-sm max-w-xs mx-auto">
-                            Point camera at student. AI will auto-mark attendance upon high-confidence match.
+                            Point camera at person. System automatically identifies Students and Staff.
                         </p>
-                        <Button variant="secondary" className="mt-4">Start Capture Session</Button>
                     </div>
                 </div>
             )}
