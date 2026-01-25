@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, MoreHorizontal, GraduationCap, Loader2 } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, GraduationCap, Loader2, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import BulkUploadModal from '@/components/BulkUploadModal';
+import ShareIDCardLink from '@/components/ShareIDCardLink';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from 'sonner'; // Assuming sonner or react-hot-toast is installed, falling back to console if not
 
@@ -26,12 +28,13 @@ export default function StudentsPage() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
 
     // Add Form State
     const [newStudent, setNewStudent] = useState({
         full_name: '',
         admission_number: '',
-        admission_date: '',  // ADDED: Required by backend
+        admission_date: new Date().toISOString().split('T')[0],  // DEFAULT: Today's date
         date_of_birth: '',
         gender: 'Male',
         current_class: '',
@@ -82,7 +85,7 @@ export default function StudentsPage() {
             await api.post('/students', payload);
             setIsAddOpen(false);
             setNewStudent({
-                full_name: '', admission_number: '', admission_date: '', date_of_birth: '',
+                full_name: '', admission_number: '', admission_date: new Date().toISOString().split('T')[0], date_of_birth: '',
                 gender: 'Male', current_class: '', father_name: '', father_phone: ''
             });
             fetchStudents(); // Refresh list
@@ -114,13 +117,23 @@ export default function StudentsPage() {
                     </h1>
                     <p className="text-slate-500 text-sm mt-0.5">Manage student admissions, profiles and records.</p>
                 </div>
-                <Button
-                    onClick={() => setIsAddOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 touch-target w-full md:w-auto h-[44px] text-sm"
-                >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Enroll Student
-                </Button>
+                <div className="flex gap-2 w-full md:w-auto">
+                    <Button
+                        onClick={() => setIsBulkUploadOpen(true)}
+                        variant="outline"
+                        className="border-blue-200 text-blue-700 hover:bg-blue-50 h-[44px] flex-1 md:flex-none"
+                    >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Bulk Upload
+                    </Button>
+                    <Button
+                        onClick={() => setIsAddOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 h-[44px] flex-1 md:flex-none"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Enroll Student
+                    </Button>
+                </div>
             </div>
 
             {error && (
@@ -224,7 +237,7 @@ export default function StudentsPage() {
                                 <th className="px-6 py-2">Class</th>
                                 <th className="px-6 py-2">Parent Info</th>
                                 <th className="px-6 py-2">Status</th>
-                                <th className="px-6 py-2 text-right">Actions</th>
+                                <th className="px-6 py-2">ID Card Share</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -280,8 +293,11 @@ export default function StudentsPage() {
                                                 {student.status || 'Active'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button className="text-slate-400 hover:text-blue-600 p-2 hover:bg-blue-50 rounded-full transition-colors"><MoreHorizontal size={20} /></button>
+                                        <td className="px-6 py-4">
+                                            <ShareIDCardLink
+                                                studentId={student.student_id}
+                                                admissionNumber={student.admission_number}
+                                            />
                                         </td>
                                     </tr>
                                 ))
@@ -367,6 +383,15 @@ export default function StudentsPage() {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Bulk Upload Modal */}
+            <BulkUploadModal
+                isOpen={isBulkUploadOpen}
+                onClose={() => setIsBulkUploadOpen(false)}
+                onSuccess={() => {
+                    fetchStudents(); // Refresh list after bulk upload
+                }}
+            />
         </div>
     );
 }
