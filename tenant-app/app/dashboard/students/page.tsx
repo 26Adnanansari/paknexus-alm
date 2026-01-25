@@ -8,9 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BulkUploadModal from '@/components/BulkUploadModal';
 import ShareIDCardLink from '@/components/ShareIDCardLink';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { toast } from 'sonner'; // Assuming sonner or react-hot-toast is installed, falling back to console if not
+import { toast } from 'sonner';
 
-// Define interfaces for strict typing
 interface Student {
     student_id: string;
     full_name: string;
@@ -21,6 +20,9 @@ interface Student {
     father_name?: string;
     father_phone?: string;
     status: string;
+    email?: string;
+    address?: string;
+    photo_url?: string;
 }
 
 export default function StudentsPage() {
@@ -34,15 +36,29 @@ export default function StudentsPage() {
     const [newStudent, setNewStudent] = useState({
         full_name: '',
         admission_number: '',
-        admission_date: new Date().toISOString().split('T')[0],  // DEFAULT: Today's date
+        admission_date: new Date().toISOString().split('T')[0],
         date_of_birth: '',
         gender: 'Male',
         current_class: '',
         father_name: '',
-        father_phone: ''  // FIXED: Renamed from contact_phone
+        father_phone: '',
+        photo_url: '',
+        email: '',
+        address: ''
     });
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const fetchNextId = async () => {
+        try {
+            const res = await api.get('/students/next-id');
+            if (res.data?.next_id) {
+                setNewStudent(prev => ({ ...prev, admission_number: res.data.next_id }));
+            }
+        } catch (e) {
+            console.error("Failed to suggest ID", e);
+        }
+    };
 
     const fetchStudents = useCallback(async () => {
         setLoading(true);
@@ -71,13 +87,14 @@ export default function StudentsPage() {
         setSubmitting(true);
         setError(null);
 
-        // Sanitize payload: valid backend might expect null for empty optional strings
         const payload = {
             ...newStudent,
             father_name: newStudent.father_name.trim() || null,
-            father_phone: newStudent.father_phone.trim() || null,  // FIXED: Renamed field
+            father_phone: newStudent.father_phone.trim() || null,
             current_class: newStudent.current_class.trim() || null,
-            // Ensure gender matches exactly what backend expects (Title Case often)
+            photo_url: newStudent.photo_url.trim() || null,
+            email: newStudent.email.trim() || null,
+            address: newStudent.address.trim() || null,
             gender: newStudent.gender
         };
 
@@ -86,22 +103,14 @@ export default function StudentsPage() {
             setIsAddOpen(false);
             setNewStudent({
                 full_name: '', admission_number: '', admission_date: new Date().toISOString().split('T')[0], date_of_birth: '',
-                gender: 'Male', current_class: '', father_name: '', father_phone: ''
+                gender: 'Male', current_class: '', father_name: '', father_phone: '', photo_url: '', email: '', address: ''
             });
-            fetchStudents(); // Refresh list
-            // toast.success("Student added successfully");
+            fetchStudents();
+            toast.success("Student added successfully");
         } catch (err: any) {
             console.error("Failed to add student:", err);
-            // Log detailed server error if available
-            if (err.response?.data) {
-                console.error("Server Error Details:", err.response.data);
-            }
-
-            const msg = err?.response?.data?.detail
-                || err?.response?.data?.message
-                || 'Failed to add student. Please check all fields (unique admission no, valid dates).';
+            const msg = err?.response?.data?.detail || 'Failed to add student. Check inputs.';
             setError(msg);
-            // alert(`Error: ${msg}`); // Removed alert, using UI error state
         } finally {
             setSubmitting(false);
         }
@@ -127,7 +136,10 @@ export default function StudentsPage() {
                         Bulk Upload
                     </Button>
                     <Button
-                        onClick={() => setIsAddOpen(true)}
+                        onClick={() => {
+                            setIsAddOpen(true);
+                            fetchNextId();
+                        }}
                         className="bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all active:scale-95 h-[44px] flex-1 md:flex-none"
                     >
                         <Plus className="h-4 w-4 mr-2" />
@@ -182,8 +194,12 @@ export default function StudentsPage() {
                             <div key={student.student_id} className="p-4 space-y-3 bg-white hover:bg-slate-50 transition-colors">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="h-12 w-12 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border border-blue-200">
-                                            {student.full_name?.[0]}
+                                        <div className="h-12 w-12 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border border-blue-200 overflow-hidden">
+                                            {student.photo_url ? (
+                                                <img src={student.photo_url} alt={student.full_name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                student.full_name?.[0]
+                                            )}
                                         </div>
                                         <div>
                                             <p className="font-bold text-slate-900 text-lg">{student.full_name}</p>
@@ -265,8 +281,12 @@ export default function StudentsPage() {
                                     <tr key={student.student_id} className="hover:bg-slate-50/80 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold shadow-sm border border-blue-200">
-                                                    {student.full_name?.[0]}
+                                                <div className="h-10 w-10 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold shadow-sm border border-blue-200 overflow-hidden">
+                                                    {student.photo_url ? (
+                                                        <img src={student.photo_url} alt={student.full_name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        student.full_name?.[0]
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <div className="font-bold text-slate-900">{student.full_name}</div>
@@ -322,8 +342,8 @@ export default function StudentsPage() {
                         >
                             <div className="px-6 md:px-8 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10">
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">Add New Student</h2>
-                                    <p className="text-sm text-slate-500">Enter the student&apos;s details below.</p>
+                                    <h2 className="text-xl font-bold text-slate-900">Enroll Student</h2>
+                                    <p className="text-sm text-slate-500">Fill in the student details below</p>
                                 </div>
                                 <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-colors touch-target min-w-[44px] flex items-center justify-center">✕</button>
                             </div>
@@ -335,7 +355,7 @@ export default function StudentsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-700">Admission No <span className="text-red-500">*</span></label>
-                                        <input required className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.admission_number} onChange={e => setNewStudent({ ...newStudent, admission_number: e.target.value })} placeholder="ADM-001" />
+                                        <input required className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target font-mono" value={newStudent.admission_number} onChange={e => setNewStudent({ ...newStudent, admission_number: e.target.value })} placeholder="ADM-001" />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-700">Admission Date <span className="text-red-500">*</span></label>
@@ -368,6 +388,18 @@ export default function StudentsPage() {
                                         <label className="text-sm font-bold text-slate-700">Father&apos;s Phone</label>
                                         <input className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.father_phone} onChange={e => setNewStudent({ ...newStudent, father_phone: e.target.value })} placeholder="+92 300 1234567" />
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Email Address</label>
+                                        <input type="email" className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.email} onChange={e => setNewStudent({ ...newStudent, email: e.target.value })} placeholder="student@example.com" />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-sm font-bold text-slate-700">Residential Address</label>
+                                        <textarea className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target resize-none h-20" value={newStudent.address} onChange={e => setNewStudent({ ...newStudent, address: e.target.value })} placeholder="Enter full address..." />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-sm font-bold text-slate-700">Student Photo URL</label>
+                                        <input className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.photo_url} onChange={e => setNewStudent({ ...newStudent, photo_url: e.target.value })} placeholder="https://example.com/photo.jpg" />
+                                    </div>
                                 </div>
 
                                 <div className="flex justify-end gap-3 pt-4 sticky bottom-0 bg-white border-t border-slate-100 p-4 -mx-6 md:-mx-8">
@@ -389,7 +421,7 @@ export default function StudentsPage() {
                 isOpen={isBulkUploadOpen}
                 onClose={() => setIsBulkUploadOpen(false)}
                 onSuccess={() => {
-                    fetchStudents(); // Refresh list after bulk upload
+                    fetchStudents();
                 }}
             />
         </div>
