@@ -5,7 +5,7 @@ import asyncpg
 import json
 
 from app.core.database import get_master_db_pool
-from app.api.v1.deps import get_current_school_user
+from app.api.v1.deps import get_current_school_user, get_tenant_db_pool
 from app.core.security import SecurityService
 
 router = APIRouter()
@@ -39,42 +39,31 @@ async def get_school_profile(
 @router.get("/stats", response_model=dict)
 async def get_school_stats(
     current_user: dict = Depends(get_current_school_user),
-    pool: asyncpg.Pool = Depends(get_master_db_pool)
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)  # Use Tenant DB Pool
 ):
     """Get dashboard statistics (Student count, Teacher count, Storage usage)."""
-    # 1. Get Tenant DB Pool (since users are in tenant DB? or master? 
-    # Users (students/teachers) are likely in 'tenant_users' in MASTER DB or detailed tables in TENANT DB.
-    # Looking at schema from previous sessions: 
-    # 'tenant_users' has 'role'. Checking master table 'tenant_users'.
-    # If we move to separate schemas later, this changes. For now, count from master 'tenant_users'.
-    
-    tenant_id = current_user["tenant_id"]
     
     async with pool.acquire() as conn:
-        # Count Students
+        # Count Students (from tenant 'students' table)
         student_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM tenant_users WHERE tenant_id = $1 AND role = 'student'",
-            tenant_id
+            "SELECT COUNT(*) FROM students WHERE status = 'active'"
         )
         
-        # Count Teachers
+        # Count Teachers (from tenant 'staff' table)
         teacher_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM tenant_users WHERE tenant_id = $1 AND role = 'teacher'",
-            tenant_id
+            "SELECT COUNT(*) FROM staff WHERE role = 'teacher' AND is_active = TRUE"
         )
         
         # Storage usage (Mock for now or calculate from uploads if we track them)
-        # Assuming we track in 'audit_logs' or dedicated 'storage_usage' table?
-        # For now, return a realistic Mock or 0 if no data.
-        storage_used_mb = 45 # Mock for now as we don't have file tracking yet
+        storage_used_mb = 120 # Mock
         
     return {
         "students": student_count,
         "teachers": teacher_count,
         "storage_mb": storage_used_mb,
-        "student_limit": 500, # Hardcoded limit for now (could be from subscription)
+        "student_limit": 500, 
         "teacher_limit": 50,
-        "storage_limit_mb": 200
+        "storage_limit_mb": 1024
     }
 
 @router.patch("/branding", response_model=dict)

@@ -63,3 +63,35 @@ async def mark_attendance_batch(
                 """, record.student_id, data.date, record.status, record.remarks)
                 
         return {"message": "Attendance marked successfully"}
+
+@router.get("/stats")
+async def get_attendance_stats(
+    range: str = "week",
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    async with pool.acquire() as conn:
+        # Get constant denominator
+        total_students = await conn.fetchval("SELECT COUNT(*) FROM students WHERE status='active'")
+        if not total_students or total_students == 0:
+            return {"labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "data": [0,0,0,0,0,0,0]}
+            
+        days = 7 if range == 'week' else 30
+        
+        rows = await conn.fetch(f"""
+            SELECT date, COUNT(*) as present_count 
+            FROM attendance 
+            WHERE status = 'present' AND date >= CURRENT_DATE - INTERVAL '{days} days'
+            GROUP BY date 
+            ORDER BY date ASC
+        """)
+        
+        # Fill missing dates? For now just return found dates
+        labels = [r['date'].strftime('%a') for r in rows] 
+        data = [round((r['present_count'] / total_students) * 100, 1) for r in rows]
+        
+        return {
+            "labels": labels, 
+            "data": data, 
+            "avg_present": round(sum(data)/len(data) if data else 0, 1)
+        }

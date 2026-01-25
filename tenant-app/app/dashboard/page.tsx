@@ -23,38 +23,58 @@ export default function Dashboard() {
     const { data: session } = useSession();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const router = useRouter();
+
+    // Stats State
     const [stats, setStats] = React.useState<StatCardProps[]>([
         { label: 'Students', value: '0', limit: '500', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100', progress: 0, delay: 0 },
         { label: 'Teachers', value: '0', limit: '50', icon: GraduationCap, color: 'text-emerald-600', bg: 'bg-emerald-100', progress: 0, delay: 0.1 },
         { label: 'Storage', value: '120 MB', limit: '1 GB', icon: Database, color: 'text-orange-600', bg: 'bg-orange-100', progress: 12, delay: 0.2 },
     ]);
 
+    // Attendance State
+    const [attendanceTrends, setAttendanceTrends] = React.useState<{ labels: string[], data: number[] }>({
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        data: [0, 0, 0, 0, 0, 0, 0]
+    });
+
     // Fetch real stats
     React.useEffect(() => {
         if (session?.user) {
             const fetchStats = async () => {
                 try {
-                    // Fetch students count
-                    const res = await import('@/lib/api').then(m => m.default.get('/students?limit=1'));
-                    // API returns list, we can get count from header or length if small, 
-                    // or if pagination is standard, response might have total.
-                    // Assuming standard array for now or paginated response
+                    const api = (await import('@/lib/api')).default;
 
-                    // For now, let's assume it returns { items: [], total: X } or just []
-                    // Based on previous work, list endpoints often return array. 
-                    // Let's safe check.
-                    let count = 0;
-                    if (Array.isArray(res.data)) {
-                        count = res.data.length;
-                    } else if (res.data?.total) {
-                        count = res.data.total;
+                    // 1. Fetch Basic Stats
+                    const res = await api.get('/school/stats');
+                    const data = res.data;
+
+                    setStats(prev => [
+                        {
+                            ...prev[0],
+                            value: data.students.toString(),
+                            limit: data.student_limit.toString(),
+                            progress: Math.min((data.students / data.student_limit) * 100, 100)
+                        },
+                        {
+                            ...prev[1],
+                            value: data.teachers.toString(),
+                            limit: data.teacher_limit.toString(),
+                            progress: Math.min((data.teachers / data.teacher_limit) * 100, 100)
+                        },
+                        {
+                            ...prev[2],
+                            value: `${data.storage_mb} MB`,
+                            limit: `${data.storage_limit_mb} MB`,
+                            progress: Math.min((data.storage_mb / data.storage_limit_mb) * 100, 100)
+                        }
+                    ]);
+
+                    // 2. Fetch Attendance Trends
+                    const attRes = await api.get('/attendance/stats');
+                    if (attRes.data && attRes.data.data && attRes.data.data.length > 0) {
+                        setAttendanceTrends(attRes.data);
                     }
 
-                    setStats(prev => prev.map(s =>
-                        s.label === 'Students'
-                            ? { ...s, value: count.toString(), progress: Math.min((count / 500) * 100, 100) }
-                            : s
-                    ));
                 } catch (error) {
                     console.error("Failed to fetch dashboard stats:", error);
                 }
@@ -65,7 +85,7 @@ export default function Dashboard() {
 
     return (
         <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
-            {/* Welcome section with animation */}
+            {/* Welcome section */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -78,7 +98,6 @@ export default function Dashboard() {
                 <button
                     onClick={() => router.push('/dashboard/students')}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-200 active:scale-95 touch-target h-[44px] text-sm md:text-base w-full sm:w-auto"
-                    aria-label="Enroll new student"
                 >
                     <Plus size={18} />
                     <span>Enroll Student</span>
@@ -97,7 +116,7 @@ export default function Dashboard() {
 
             {/* Quick Actions & Recent Activity Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                {/* Quick Actions */}
+                {/* Quick Actions & Charts */}
                 <div className="lg:col-span-2 space-y-6">
                     <h3 className="text-fluid-h3 text-slate-900">Management Shortcuts</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -107,7 +126,7 @@ export default function Dashboard() {
                         <QuickAction icon={Settings} label="Settings" color="slate" onClick={() => router.push('/dashboard/settings')} />
                     </div>
 
-                    {/* Chart Placeholder / Performance */}
+                    {/* Chart Data */}
                     <div className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
                             <h4 className="font-bold text-slate-800 text-lg">Attendance Trends</h4>
@@ -116,11 +135,10 @@ export default function Dashboard() {
                                 aria-label="Select date range"
                             >
                                 <option>Last 7 Days</option>
-                                <option>Last 30 Days</option>
                             </select>
                         </div>
                         <div className="h-48 flex items-end justify-between gap-2 px-2" role="img" aria-label="Attendance bar chart">
-                            {[45, 60, 52, 75, 40, 68, 85].map((val, i) => (
+                            {attendanceTrends.data.length > 0 ? attendanceTrends.data.map((val, i) => (
                                 <motion.div
                                     key={i}
                                     initial={{ height: 0 }}
@@ -130,43 +148,47 @@ export default function Dashboard() {
                                 >
                                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">{val}% Present</span>
                                 </motion.div>
-                            ))}
+                            )) : (
+                                <div className="text-center w-full text-slate-400 text-sm self-center">No attendance data for this week</div>
+                            )}
                         </div>
                         <div className="flex justify-between mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2">
-                            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                            {attendanceTrends.labels.map((lbl, i) => (
+                                <span key={i}>{lbl}</span>
+                            ))}
                         </div>
                     </div>
                 </div>
 
-                {/* Recent Activity */}
+                {/* Recent Activity (Still Hardcoded for now) */}
                 <div className="space-y-6">
                     <h3 className="text-fluid-h3 text-slate-900">Recent Logs</h3>
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                         <div className="p-1">
                             <ActivityEntry
-                                title="New enrollment"
-                                name="Ahmed K."
-                                time="2h ago"
+                                title="New Staff Added"
+                                name="System"
+                                time="Just now"
                                 icon={Users}
                                 color="bg-blue-100 text-blue-600"
                             />
                             <ActivityEntry
-                                title="Fee Paid"
-                                name="Sarah M. - $200"
-                                time="5h ago"
+                                title="Fee Collection"
+                                name="Pending Setup"
+                                time="--h ago"
                                 icon={TrendingUp}
                                 color="bg-emerald-100 text-emerald-600"
                             />
                             <ActivityEntry
-                                title="Absent Alert"
-                                name="John D. - Grade 10"
-                                time="1d ago"
+                                title="System Update"
+                                name="Version 1.0.1"
+                                time="Today"
                                 icon={Bell}
-                                color="bg-red-100 text-red-600"
+                                color="bg-purple-100 text-purple-600"
                             />
                         </div>
                         <button className="w-full py-4 text-sm font-bold text-blue-600 hover:bg-slate-50 transition-colors border-t border-slate-100 min-h-[48px]">
-                            View All Activity
+                            View All Logs
                         </button>
                     </div>
                 </div>
