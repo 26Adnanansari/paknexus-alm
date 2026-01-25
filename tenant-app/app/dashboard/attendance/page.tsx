@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Calendar, Check, X, Clock, Save, Scan, QrCode, Smartphone } from 'lucide-react';
+import { Calendar, Check, X, Clock, Save, Scan, QrCode, Smartphone, Camera } from 'lucide-react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from 'sonner';
+import QRScanner from '@/components/attendance/QRScanner';
 
 interface AttendanceRecord {
     student_id: string;
@@ -14,6 +15,7 @@ interface AttendanceRecord {
     status: 'present' | 'absent' | 'late';
     remarks?: string;
     check_in_time?: string;
+    admission_number?: string;
 }
 
 export default function AttendancePage() {
@@ -25,6 +27,7 @@ export default function AttendancePage() {
     // Scanner State
     const [scannerMode, setScannerMode] = useState<'manual' | 'barcode' | 'face'>('manual');
     const [barcodeInput, setBarcodeInput] = useState('');
+    const [isCameraOpen, setIsCameraOpen] = useState(false);
     const barcodeInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -58,16 +61,35 @@ export default function AttendancePage() {
         setStudents(newStudents);
     };
 
+    const handleCameraScan = (decodedText: string) => {
+        // Logic to find student by scanned text (e.g., student_id or admission_number)
+        const studentIndex = students.findIndex(s =>
+            s.student_id.includes(decodedText) ||
+            s.full_name.toLowerCase().includes(decodedText.toLowerCase()) ||
+            s.admission_number?.includes(decodedText)
+        );
+
+        if (studentIndex >= 0) {
+            // Check if already marked to avoid spamming toasts
+            if (students[studentIndex].status !== 'present') {
+                markStatus(studentIndex, 'present');
+                toast.success(`Marked Present: ${students[studentIndex].full_name}`);
+                setIsCameraOpen(false); // Close camera after successful scan (optional)
+            } else {
+                toast.info(`Already marked present: ${students[studentIndex].full_name}`);
+            }
+        } else {
+            // Optional: Debounce this to avoid error spam
+            // toast.error(`Student not found: ${decodedText}`);
+        }
+    };
+
     const handleBarcodeSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!barcodeInput) return;
 
         // Logic to find student by barcode (assuming barcode = admission_number or student_id)
-        // This simulates a scan action. In real app, we might need a separate lookup if data isn't loaded.
-        // For now, let's search in the loaded list.
         const studentIndex = students.findIndex(s =>
-            // Mock matching logic: check against ID or simulate checking a field
-            // In a real scenario, this would likely be specific metadata
             s.student_id.includes(barcodeInput) || s.full_name.toLowerCase().includes(barcodeInput.toLowerCase())
         );
 
@@ -121,7 +143,7 @@ export default function AttendancePage() {
                         onClick={() => setScannerMode('barcode')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${scannerMode === 'barcode' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
                     >
-                        <Scan size={16} /> Barcode Mode
+                        <Scan size={16} /> Barcode / Camera
                     </button>
                     <button
                         onClick={() => setScannerMode('face')}
@@ -140,22 +162,47 @@ export default function AttendancePage() {
                     </div>
                     <div>
                         <h3 className="text-2xl font-bold">Ready to Scan</h3>
-                        <p className="text-blue-100">Ensure cursor is focused below and use your handheld scanner.</p>
+                        <p className="text-blue-100">Ensure cursor is focused below OR use mobile camera.</p>
                     </div>
-                    <form onSubmit={handleBarcodeSubmit} className="w-full max-w-md relative">
-                        <input
-                            ref={barcodeInputRef}
-                            value={barcodeInput}
-                            onChange={(e) => setBarcodeInput(e.target.value)}
-                            className="w-full px-6 py-4 rounded-xl text-slate-900 font-mono text-lg font-bold outline-none ring-4 ring-white/20 focus:ring-white/40 transition-all placeholder:text-slate-300"
-                            placeholder="Scan Barcode here..."
-                            autoFocus
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 uppercase tracking-widest pointer-events-none">
-                            Code 128
+
+                    <div className="flex flex-col gap-4 w-full max-w-md items-center">
+                        <form onSubmit={handleBarcodeSubmit} className="w-full relative">
+                            <input
+                                ref={barcodeInputRef}
+                                value={barcodeInput}
+                                onChange={(e) => setBarcodeInput(e.target.value)}
+                                className="w-full px-6 py-4 rounded-xl text-slate-900 font-mono text-lg font-bold outline-none ring-4 ring-white/20 focus:ring-white/40 transition-all placeholder:text-slate-300 shadow-inner"
+                                placeholder="Scan Barcode here..."
+                                autoFocus
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 uppercase tracking-widest pointer-events-none hidden sm:block">
+                                Code 128
+                            </div>
+                        </form>
+
+                        <div className="flex items-center gap-2 text-blue-200 text-sm font-bold uppercase tracking-widest w-full justify-center opacity-70">
+                            <span className="h-px w-8 bg-blue-300"></span>
+                            OR
+                            <span className="h-px w-8 bg-blue-300"></span>
                         </div>
-                    </form>
+
+                        <button
+                            onClick={() => setIsCameraOpen(true)}
+                            className="w-full bg-white text-blue-600 hover:bg-blue-50 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 border-2 border-transparent hover:border-blue-200"
+                        >
+                            <Camera size={20} />
+                            <span>Open Mobile Camera</span>
+                        </button>
+                    </div>
                 </div>
+            )}
+
+            {/* Camera Overlay */}
+            {isCameraOpen && (
+                <QRScanner
+                    onScan={handleCameraScan}
+                    onClose={() => setIsCameraOpen(false)}
+                />
             )}
 
             {scannerMode === 'face' && (
