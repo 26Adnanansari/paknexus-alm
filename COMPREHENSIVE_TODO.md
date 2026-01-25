@@ -116,7 +116,7 @@
 - [ ] **CREATE**: Logo upload endpoint
   - `/api/v1/school/branding/upload-logo`
   - File validation (image types only)
-  - Size limits (max 2MB)
+  - Size limits (max 1MB)
   - Generate thumbnails for different sizes
 - [ ] **CREATE**: Branding settings endpoint
   - GET `/api/v1/school/branding`
@@ -277,7 +277,86 @@
   - Display student info (limited)
   - Verify authenticity
 
-#### 8.4 Technologies
+#### 8.4 ID Card Edit Restriction & Appeal System 🔒
+- [ ] **CRITICAL SECURITY**: Implement one-time edit restriction
+  - Public users can only edit ID card form ONCE before submission
+  - After submission, form becomes READ-ONLY for public users
+  - Prevents unauthorized data tampering and fraud
+  - Creates audit trail for all changes
+
+- [ ] **DATABASE SCHEMA**: Add tracking fields to student_id_cards table
+  ```sql
+  ALTER TABLE student_id_cards ADD COLUMN IF NOT EXISTS
+    status VARCHAR(20) DEFAULT 'draft', -- draft, submitted, locked, appeal_pending, unlocked_for_edit
+    submission_count INTEGER DEFAULT 0,
+    last_submitted_at TIMESTAMPTZ,
+    is_editable BOOLEAN DEFAULT TRUE,
+    appeal_reason TEXT,
+    appeal_submitted_at TIMESTAMPTZ,
+    unlocked_by_admin_id UUID REFERENCES staff(staff_id),
+    unlocked_at TIMESTAMPTZ,
+    edit_history JSONB DEFAULT '[]'::jsonb;
+  ```
+
+- [ ] **CREATE**: Appeal system table
+  ```sql
+  CREATE TABLE id_card_appeals (
+    appeal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES students(student_id),
+    card_id UUID REFERENCES student_id_cards(card_id),
+    appeal_reason TEXT NOT NULL,
+    mistake_description TEXT NOT NULL,
+    requested_changes JSONB,
+    status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
+    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+    reviewed_by UUID REFERENCES staff(staff_id),
+    reviewed_at TIMESTAMPTZ,
+    admin_notes TEXT
+  );
+  ```
+
+- [ ] **BACKEND**: Appeal workflow API
+  - POST `/api/v1/id-cards/{id}/submit` - Lock card after submission
+  - POST `/api/v1/id-cards/{id}/appeal` - Submit correction appeal
+  - GET `/api/v1/admin/id-card-appeals` - List pending appeals
+  - PUT `/api/v1/admin/id-card-appeals/{id}/approve` - Unlock for edit
+  - PUT `/api/v1/admin/id-card-appeals/{id}/reject` - Reject appeal
+  - Automatic email notifications at each stage
+
+- [ ] **FRONTEND**: Public user workflow
+  - Show "Submit" button when status is 'draft'
+  - After submit: Lock form, show "Submitted" badge
+  - Add "Request Correction" button on locked forms
+  - Appeal modal with reason textarea
+  - Display appeal status (pending/approved/rejected)
+  - If approved: Allow ONE MORE edit, then re-lock
+
+- [ ] **FRONTEND**: Admin appeal management
+  - Appeals dashboard with pending count badge
+  - Review interface showing:
+    - Student details
+    - Current ID card data
+    - Requested changes
+    - Appeal reason
+  - Approve/Reject buttons
+  - Admin notes field
+  - Bulk approve/reject functionality
+
+- [ ] **SECURITY**: Validation & audit trail
+  - Log all edit attempts in edit_history JSONB
+  - Track IP addresses for submissions
+  - Prevent direct API manipulation
+  - Rate limiting on appeal submissions
+  - Email verification before unlocking
+
+- [ ] **NOTIFICATIONS**: Email alerts
+  - User: "ID Card submitted successfully"
+  - User: "Appeal received, under review"
+  - User: "Appeal approved - You can edit now"
+  - User: "Appeal rejected - Contact admin"
+  - Admin: "New ID card appeal received"
+
+#### 8.5 Technologies
 - [ ] **INSTALL**: Required packages
   - `@react-pdf/renderer` or `pdfmake`
   - `qrcode.react`
