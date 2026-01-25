@@ -14,10 +14,14 @@ class StaffCreate(BaseModel):
     full_name: str
     employee_id: str
     designation: Optional[str] = None
+    department: Optional[str] = None
     role: str = 'teacher'
     email: Optional[str] = None
     phone: Optional[str] = None
+    address: Optional[str] = None
+    qualifications: Optional[str] = None
     join_date: date
+    salary_amount: Optional[float] = None
 
 @router.get("/", response_model=List[dict])
 async def list_staff(
@@ -40,6 +44,8 @@ async def list_staff(
             query += f" AND (full_name ILIKE ${param_count} OR employee_id ILIKE ${param_count})"
             params.append(f"%{search}%")
             param_count += 1
+        
+        query += " ORDER BY join_date DESC"
             
         rows = await conn.fetch(query, *params)
         return [dict(row) for row in rows]
@@ -56,9 +62,15 @@ async def create_staff(
             raise HTTPException(status_code=400, detail="Employee ID already exists")
 
         row = await conn.fetchrow("""
-            INSERT INTO staff (full_name, employee_id, designation, role, email, phone, join_date)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO staff (
+                full_name, employee_id, designation, department, role, 
+                email, phone, address, qualifications, join_date, salary_amount
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-        """, staff.full_name, staff.employee_id, staff.designation, staff.role, staff.email, staff.phone, staff.join_date)
+        """, 
+        staff.full_name, staff.employee_id, staff.designation, staff.department, staff.role,
+        staff.email, staff.phone, staff.address, staff.qualifications, staff.join_date, staff.salary_amount
+        )
         
         return dict(row)

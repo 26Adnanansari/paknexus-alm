@@ -373,16 +373,16 @@
 
 #### 9.1 Current State
 - [x] Staff table exists in schema
-- [ ] **MISSING**: Complete CRUD operations
-- [ ] **MISSING**: Frontend pages
+- [x] **PARTIAL**: Complete CRUD operations (List/Create done)
+- [x] **PARTIAL**: Frontend pages (Directory done)
 
 #### 9.2 Backend Development
-- [ ] **CREATE**: Staff API endpoints
-  - GET `/api/v1/staff` - List all staff
-  - POST `/api/v1/staff` - Add new staff
-  - PUT `/api/v1/staff/{id}` - Update staff
-  - DELETE `/api/v1/staff/{id}` - Remove staff
-  - GET `/api/v1/staff/{id}/workload` - View teaching load
+- [x] **CREATE**: Staff API endpoints
+  - [x] GET `/api/v1/staff` - List all staff
+  - [x] POST `/api/v1/staff` - Add new staff
+  - [ ] PUT `/api/v1/staff/{id}` - Update staff
+  - [ ] DELETE `/api/v1/staff/{id}` - Remove staff
+  - [ ] GET `/api/v1/staff/{id}/workload` - View teaching load
 
 - [ ] **CREATE**: Payroll calculation service
   - Monthly salary calculation
@@ -391,11 +391,11 @@
   - Generate pay slips
 
 #### 9.3 Frontend Development
-- [ ] **CREATE**: Staff directory page
-  - List view with filters (department, role)
-  - Search by name/employee ID
-  - Add staff modal/page
-  - Staff profile cards
+- [x] **CREATE**: Staff directory page
+  - [x] List view with filters (department, role)
+  - [x] Search by name/employee ID
+  - [x] Add staff modal/page
+  - [x] Staff profile cards
 
 - [ ] **CREATE**: Staff profile page
   - Personal details
