@@ -258,12 +258,12 @@ function StructureTab() {
                             {structure.map((s: any) => (
                                 <div key={s.structure_id} className="flex justify-between p-3 bg-white border border-slate-100 rounded-lg text-sm shadow-sm">
                                     <span>{s.head_name}</span>
-                                    <span className="font-bold text-slate-900">${s.amount} <span className="text-xs text-slate-400 font-normal">/mo</span></span>
+                                    <span className="font-bold text-slate-900">PKR {s.amount} <span className="text-xs text-slate-400 font-normal">/mo</span></span>
                                 </div>
                             ))}
                             <div className="flex justify-between p-3 bg-blue-50 text-blue-800 rounded-lg text-sm font-bold mt-2">
                                 <span>Total Monthly</span>
-                                <span>${structure.reduce((sum, item) => sum + parseFloat(item.amount), 0)}</span>
+                                <span>PKR {structure.reduce((sum, item) => sum + parseFloat(item.amount), 0)}</span>
                             </div>
                         </div>
                     )}
@@ -478,12 +478,12 @@ function CollectionTab() {
                                                 <span className="font-bold text-lg">{inv.month_year}</span>
                                                 <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{inv.status}</span>
                                             </div>
-                                            <p className="text-sm text-slate-500">Total: ${inv.total_amount} - Scholarship: ${inv.scholarship_amount}</p>
+                                            <p className="text-sm text-slate-500">Total: PKR {inv.total_amount} - Scholarship: PKR {inv.scholarship_amount}</p>
                                         </div>
                                         <div className="text-right flex items-center gap-4">
                                             <div>
                                                 <p className="text-xs text-slate-400 font-bold uppercase">Balance Due</p>
-                                                <p className={`text-xl font-black ${pending > 0 ? 'text-red-600' : 'text-green-600'}`}>${pending.toFixed(2)}</p>
+                                                <p className={`text-xl font-black ${pending > 0 ? 'text-red-600' : 'text-green-600'}`}>PKR {pending.toFixed(2)}</p>
                                             </div>
                                             {pending > 0 && (
                                                 <button onClick={() => initiatePay(inv)} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg shadow-blue-200 hover:bg-blue-700">Pay Now</button>

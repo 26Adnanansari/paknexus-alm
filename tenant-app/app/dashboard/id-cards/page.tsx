@@ -247,7 +247,7 @@ export default function IDCardGenerator() {
                         <div className="perspective-1000 group">
                             <motion.div
                                 layout
-                                className="w-full max-w-[340px] aspect-[1/1.58] bg-white rounded-[24px] shadow-2xl overflow-hidden relative border border-slate-100"
+                                className="w-[320px] h-[512px] shrink-0 bg-white rounded-[24px] shadow-2xl overflow-hidden relative border border-slate-100"
                                 animate={{
                                     rotateY: isGenerating ? 360 : 0,
                                     scale: isGenerating ? 0.95 : 1
