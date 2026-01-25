@@ -122,5 +122,5 @@ app.include_router(moments.router, prefix=f"{settings.API_V1_STR}/moments", tags
 app.include_router(nexus.router, prefix=f"{settings.API_V1_STR}/nexus", tags=["nexus"])
 app.include_router(karma.router, prefix=f"{settings.API_V1_STR}/karma", tags=["karma"])
 app.include_router(fees.router, prefix=f"{settings.API_V1_STR}/fees", tags=["fees"])
-app.include_router(id_cards.router, prefix=f"{settings.API_V1_STR}", tags=["id-cards"])
+app.include_router(id_cards.router, prefix=f"{settings.API_V1_STR}")
 
