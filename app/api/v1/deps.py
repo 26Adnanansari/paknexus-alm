@@ -24,14 +24,18 @@ async def get_current_user_id(
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
             )
         return UUID(user_id)
-    except (JWTError, ValidationError, ValueError):
+    except (JWTError, ValidationError, ValueError) as e:
+        import logging
+        logging.getLogger("app.deps").warning(f"Token validation failed: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
 async def get_current_admin(

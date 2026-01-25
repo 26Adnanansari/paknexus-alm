@@ -44,8 +44,8 @@ api.interceptors.response.use(
         // Handle 401 Unauthorized (Token expired/invalid) - Redirect to login
         if (error.response?.status === 401) {
             if (typeof window !== 'undefined') {
-                // Determine if we need to force signout
-                // signOut({ callbackUrl: '/login' }); 
+                // Force signout to clear stale session
+                signOut({ callbackUrl: '/login' });
             }
         }
 

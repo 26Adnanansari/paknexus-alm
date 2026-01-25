@@ -29,7 +29,11 @@ async def enroll_face(
     Extracts 128-d facial encoding and stores it in the database.
     """
     # 1. Detect Face
-    encoding = FaceService.get_encoding(file.file)
+    try:
+        encoding = FaceService.get_encoding(file.file)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Face recognition service is unavailable (library not installed)")
+    
     if not encoding:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
@@ -68,7 +72,11 @@ async def identify_user(
     Returns the user info if matched.
     """
     # 1. Get embedding from uploaded image
-    unknown_encoding = FaceService.get_encoding(file.file)
+    try:
+        unknown_encoding = FaceService.get_encoding(file.file)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Face recognition service is unavailable")
+
     if not unknown_encoding:
         raise HTTPException(status_code=400, detail="No face detected in submitted image")
 
