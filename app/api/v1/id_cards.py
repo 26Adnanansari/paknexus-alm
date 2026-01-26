@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from typing import List, Optional
 from uuid import UUID
 import json
+import asyncpg
 
 from app.models.id_card import (
     IDCardResponse, IDCardStatusResponse, IDCardWithStudent, IDCardStats,
