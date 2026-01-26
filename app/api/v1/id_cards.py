@@ -6,6 +6,7 @@ RESTful API for ID card generation, restriction, and appeal management
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from typing import List, Optional
 from uuid import UUID
+import json
 
 from app.models.id_card import (
     IDCardResponse, IDCardStatusResponse, IDCardWithStudent, IDCardStats,
@@ -299,4 +300,56 @@ async def get_pending_count(
     }
 
 
-# Note: Exception handling is done at the app level in main.py
+# ============================================================================
+# TEMPLATE MANAGEMENT
+# ============================================================================
+from app.api.v1.deps import get_master_db_pool
+from app.models.id_card import TemplateCreate, TemplateResponse, TemplateUpdate
+
+@router.post("/system/init-templates")
+async def init_template_schema(
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Update schema to support multiple templates"""
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            ALTER TABLE id_card_templates DROP CONSTRAINT IF EXISTS id_card_templates_tenant_id_key;
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS template_name VARCHAR(100);
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
+        """)
+        return {"message": "Template schema updated"}
+
+@router.get("/templates", response_model=List[TemplateResponse])
+async def list_templates(
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """List all ID card templates for tenant"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM id_card_templates 
+            WHERE tenant_id = $1 AND is_active = TRUE
+            ORDER BY created_at DESC
+        """, tenant_id)
+        return [dict(r) for r in rows]
+
+@router.post("/templates", response_model=TemplateResponse)
+async def create_template(
+    template: TemplateCreate,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Create a new ID card template with Cloudinary URLs"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            INSERT INTO id_card_templates 
+            (tenant_id, template_name, front_bg_url, back_bg_url, field_positions, is_default, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *
+        """, tenant_id, template.template_name, template.front_image_url, template.back_image_url, 
+             json.dumps(template.layout_json), template.is_default, template.is_active)
+        return dict(row)
+

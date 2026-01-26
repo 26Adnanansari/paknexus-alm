@@ -101,9 +101,17 @@ async def root():
         "version": "1.0.0"
     }
 
-# Import routers
-from app.api.v1 import admin, auth, modules, school, public, students, staff, attendance, curriculum
+from fastapi.staticfiles import StaticFiles
+import os
 
+# Create static directory if not exists
+os.makedirs("static/uploads", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Import routers
+from app.api.v1 import admin, auth, modules, school, public, students, staff, attendance, curriculum, upload
+
+app.include_router(upload.router, prefix=f"{settings.API_V1_STR}")
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(modules.router, prefix=f"{settings.API_V1_STR}/modules", tags=["modules"])

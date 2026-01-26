@@ -3,379 +3,278 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    CreditCard,
-    Upload,
-    Download,
-    RefreshCcw,
-    User,
-    Barcode as BarcodeIcon,
-    Layout,
-    Layers,
-    CheckCircle2,
-    ChevronRight,
-    ChevronLeft,
-    GraduationCap
+    CreditCard, Upload, Download, RefreshCcw, User,
+    Barcode as BarcodeIcon, CheckCircle2, ChevronRight,
+    ChevronLeft, GraduationCap, Save, QrCode
 } from 'lucide-react';
 import { useBranding } from '@/context/branding-context';
 import Barcode from 'react-barcode';
+import api from '@/lib/api';
+import { toast } from 'sonner';
+import QRCode from 'react-qr-code';
 
 export default function IDCardGenerator() {
     const { branding } = useBranding();
     const [step, setStep] = useState(1);
+
+    // Template State
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [selectedTemplate, setSelectedTemplate] = useState<string>(''); // ID
     const [frontBg, setFrontBg] = useState<string | null>(null);
     const [backBg, setBackBg] = useState<string | null>(null);
+    const [templateName, setTemplateName] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Generation State
     const [isGenerating, setIsGenerating] = useState(false);
     const [studentCount, setStudentCount] = useState(0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [sampleStudent, setSampleStudent] = useState<any>(null);
+    const [flip, setFlip] = useState(false);
 
     useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const api = await import('@/lib/api').then(m => m.default);
-                const res = await api.get('/students?limit=1');
-
-                let students = [];
-                if (Array.isArray(res.data)) {
-                    students = res.data;
-                } else if (res.data?.items) {
-                    students = res.data.items;
-                }
-
-                if (students.length > 0) {
-                    setStudentCount(students.length); // Note: this is just page count if paginated, but works for small numbers
-                    setSampleStudent(students[0]);
-                }
-            } catch (err) {
-                console.error("Failed to fetch student data", err);
-            }
-        };
+        fetchTemplates();
         fetchStats();
     }, []);
 
-    const steps = [
-        { title: 'Upload Background', icon: Upload },
-        { title: 'Preview Design', icon: CreditCard },
-        { title: 'Dynamic Generation', icon: RefreshCcw },
-    ];
+    const fetchTemplates = async () => {
+        try {
+            await api.post('/id-cards/system/init-templates'); // Ensure schema
+            const res = await api.get('/id-cards/templates');
+            setTemplates(res.data);
+        } catch (e) { console.error("Templates fetch error", e); }
+    };
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
+    const fetchStats = async () => {
+        try {
+            const res = await api.get('/students?limit=1');
+            const data = res.data.items || res.data;
+            if (data.length > 0) {
+                setStudentCount(100); // Mock or real count
+                setSampleStudent(data[0]);
+            }
+        } catch (err) { console.error("Student fetch error", err); }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (side === 'front') setFrontBg(reader.result as string);
-                else setBackBg(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const toastId = toast.loading("Uploading...");
+                const res = await api.post('/upload/image', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+                toast.dismiss(toastId);
+
+                if (side === 'front') setFrontBg(res.data.url);
+                else setBackBg(res.data.url);
+
+                toast.success("Image uploaded!");
+            } catch (e) {
+                toast.error("Upload failed");
+            }
+        }
+    };
+
+    const saveTemplate = async () => {
+        if (!frontBg || !templateName) return toast.error("Name and Front Image required");
+        setIsSaving(true);
+        try {
+            const res = await api.post('/id-cards/templates', {
+                template_name: templateName,
+                layout_json: {}, // Dynamic positions future
+                front_image_url: frontBg,
+                back_image_url: backBg,
+                is_active: true
+            });
+            toast.success("Template Saved!");
+            setTemplates([res.data, ...templates]);
+            setSelectedTemplate(res.data.template_id);
+            setTemplateName('');
+        } catch (e) {
+            toast.error("Failed to save template");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const selectTemplate = (id: string) => {
+        const t = templates.find(x => x.template_id === id);
+        if (t) {
+            setSelectedTemplate(id);
+            setFrontBg(t.front_image_url);
+            setBackBg(t.back_image_url);
         }
     };
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-10">
             <div className="max-w-6xl mx-auto space-y-8">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Dynamic ID Generator</h1>
-                        <p className="text-slate-500 font-medium">Create and manage your school&apos;s student ID cards with live dynamic data.</p>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tighter">ID Center</h1>
+                        <p className="text-slate-500 font-medium">Design, Manage, and Print Student IDs</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => window.location.href = '/dashboard/attendance'}
-                            className="text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
-                        >
-                            Open Scanner
-                        </button>
-                        <button
-                            onClick={() => window.location.href = '/dashboard'}
-                            className="text-sm font-bold text-slate-600 hover:text-slate-900 flex items-center gap-2"
-                        >
-                            <ChevronLeft size={18} />
-                            Back to Dashboard
-                        </button>
-                    </div>
+                    <button onClick={() => window.location.href = '/dashboard'} className="flex items-center gap-2 font-bold text-slate-500">
+                        <ChevronLeft size={20} /> Dashboard
+                    </button>
                 </div>
 
-                {/* Stepper */}
-                <div className="flex items-center justify-between max-w-2xl bg-white p-4 rounded-3xl border border-slate-200 shadow-sm mx-auto">
-                    {steps.map((s, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${step > i + 1 ? 'bg-emerald-500 text-white' : step === i + 1 ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                                {step > i + 1 ? <CheckCircle2 size={20} /> : <s.icon size={20} />}
-                            </div>
-                            <span className={`text-xs font-bold uppercase tracking-wider hidden sm:block ${step === i + 1 ? 'text-slate-900' : 'text-slate-400'}`}>{s.title}</span>
-                            {i < steps.length - 1 && <div className="w-8 h-px bg-slate-200 mx-2" />}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Content */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    {/* Controls */}
-                    <motion.div
-                        layout
-                        className="bg-white p-8 rounded-[40px] border border-slate-200 shadow-xl space-y-8"
-                    >
-                        <AnimatePresence mode="wait">
-                            {step === 1 && (
-                                <motion.div
-                                    key="step1"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    className="space-y-6"
+                    {/* LEFT PANEL: CONTROLS */}
+                    <div className="space-y-6">
+                        {/* 1. Template Selection */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200">
+                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                <CreditCard size={20} className="text-blue-600" />
+                                Select Template
+                            </h3>
+                            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                                <div
+                                    onClick={() => { setSelectedTemplate(''); setFrontBg(null); setBackBg(null); }}
+                                    className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${!selectedTemplate ? 'border-blue-500 bg-blue-50' : 'border-dashed border-slate-200'}`}
                                 >
-                                    <SectionTitle title="Card Backgrounds" subtitle="Upload front and back templates (PNG/JPG)" />
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <p className="text-xs font-bold text-slate-500 uppercase px-1">Front Side</p>
-                                            <label className="relative block h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group overflow-hidden">
-                                                {frontBg ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={frontBg} alt="Front" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                                                        <Upload size={24} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
-                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Image</span>
-                                                    </div>
-                                                )}
-                                                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'front')} />
-                                            </label>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <p className="text-xs font-bold text-slate-500 uppercase px-1">Back Side</p>
-                                            <label className="relative block h-40 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer group overflow-hidden">
-                                                {backBg ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img src={backBg} alt="Back" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                                                        <Upload size={24} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
-                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Image</span>
-                                                    </div>
-                                                )}
-                                                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'back')} />
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <button
-                                        disabled={!frontBg}
-                                        onClick={() => setStep(2)}
-                                        className="w-full bg-slate-900 hover:bg-blue-600 disabled:bg-slate-200 text-white py-5 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+                                    <span className="text-xs font-bold text-slate-500">New / Custom</span>
+                                </div>
+                                {templates.map(t => (
+                                    <div
+                                        key={t.template_id}
+                                        onClick={() => selectTemplate(t.template_id)}
+                                        className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl relative overflow-hidden cursor-pointer transition-all ${selectedTemplate === t.template_id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
                                     >
-                                        <span>Next: Customize Design</span>
-                                        <ChevronRight size={18} />
-                                    </button>
-                                </motion.div>
-                            )}
-
-                            {step === 2 && (
-                                <motion.div
-                                    key="step2"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    className="space-y-6"
-                                >
-                                    <SectionTitle title="Design Editor" subtitle="Adjust placement of dynamic fields" />
-                                    <div className="space-y-4">
-                                        <LayerToggle label="Student Photo" active />
-                                        <LayerToggle label="Student Name" active />
-                                        <LayerToggle label="Roll Number" active />
-                                        <LayerToggle label="Barcode (Code 128)" active icon={<BarcodeIcon size={18} />} />
-                                        <LayerToggle label="School Logo" />
-                                    </div>
-                                    <div className="flex gap-4 pt-4">
-                                        <button onClick={() => setStep(1)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-4 rounded-2xl font-bold transition-all">Back</button>
-                                        <button onClick={() => setStep(3)} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-95">Preview Generator</button>
-                                    </div>
-                                </motion.div>
-                            )}
-
-                            {step === 3 && (
-                                <motion.div
-                                    key="step3"
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    className="space-y-6"
-                                >
-                                    <SectionTitle title="Ready to Scale" subtitle="Generate individual or bulk cards" />
-                                    <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex items-center gap-4">
-                                        <div className="p-4 bg-white rounded-2xl shadow-sm">
-                                            <RefreshCcw size={24} className="text-blue-600" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-bold text-slate-900">System Ready</p>
-                                            <p className="text-xs text-slate-500">
-                                                {studentCount > 0 ? `${studentCount} students detected` : 'No students found'}
-                                            </p>
+                                        <img src={t.front_image_url} className="w-full h-full object-cover" />
+                                        <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[9px] p-1 font-bold truncate">
+                                            {t.template_name}
                                         </div>
                                     </div>
-                                    <div className="space-y-3">
-                                        <button
-                                            onClick={() => setIsGenerating(true)}
-                                            disabled={studentCount === 0}
-                                            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white py-5 rounded-2xl font-black shadow-xl shadow-blue-200 flex items-center justify-center gap-3 transition-all active:scale-95"
-                                        >
-                                            <Download size={20} />
-                                            <span>Generate All (PDF)</span>
-                                        </button>
-                                        <button
-                                            onClick={() => window.location.href = '/dashboard/students'}
-                                            className="w-full bg-white border border-slate-200 hover:border-blue-400 text-slate-700 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
-                                        >
-                                            <Layout size={18} className="text-slate-400" />
-                                            <span>Manage Students</span>
-                                        </button>
-                                    </div>
-                                    <button onClick={() => setStep(2)} className="w-full text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors">Return to Editor</button>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </motion.div>
-
-                    {/* Live Preview */}
-                    <div className="flex flex-col items-center justify-start space-y-10">
-                        <div className="text-center">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Live Card Preview</p>
-                            <div className="w-16 h-1 bg-blue-600 mx-auto rounded-full" />
+                                ))}
+                            </div>
                         </div>
 
-                        {/* The Card - 3D Effect with Framer Motion */}
-                        <div className="perspective-1000 group">
+                        {/* 2. Upload / Edit */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200">
+                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                <Upload size={20} className="text-purple-600" />
+                                Background/Design
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="space-y-2">
+                                    <span className="text-xs font-bold text-slate-400 uppercase">Front</span>
+                                    <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative">
+                                        {frontBg ? <img src={frontBg} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" />}
+                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'front')} />
+                                    </label>
+                                </div>
+                                <div className="space-y-2">
+                                    <span className="text-xs font-bold text-slate-400 uppercase">Back</span>
+                                    <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative">
+                                        {backBg ? <img src={backBg} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" />}
+                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'back')} />
+                                    </label>
+                                </div>
+                            </div>
+
+                            {!selectedTemplate && (
+                                <div className="flex gap-2 bg-slate-50 p-3 rounded-xl">
+                                    <input
+                                        placeholder="Template Name (e.g. 2026 Standard)"
+                                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 text-sm"
+                                        value={templateName}
+                                        onChange={e => setTemplateName(e.target.value)}
+                                    />
+                                    <button onClick={saveTemplate} disabled={isSaving || !frontBg} className="bg-slate-900 text-white px-4 rounded-lg font-bold text-sm">
+                                        {isSaving ? 'Saving...' : 'Save New'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 3. Actions */}
+                        <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                            <Download /> Generate PDFs
+                        </button>
+                    </div>
+
+                    {/* RIGHT PANEL: PREVIEW */}
+                    <div className="relative flex flex-col items-center">
+                        <div className="flex gap-4 mb-6">
+                            <button onClick={() => setFlip(false)} className={`px-4 py-2 rounded-full font-bold text-sm ${!flip ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}>Front Side</button>
+                            <button onClick={() => setFlip(true)} className={`px-4 py-2 rounded-full font-bold text-sm ${flip ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}>Back Side</button>
+                        </div>
+
+                        {/* 3D FLIP CONTAINER */}
+                        <div className="relative w-[320px] h-[512px] [perspective:1000px]">
                             <motion.div
-                                layout
-                                className="w-[320px] h-[512px] shrink-0 bg-white rounded-[24px] shadow-2xl overflow-hidden relative border border-slate-100"
-                                animate={{
-                                    rotateY: isGenerating ? 360 : 0,
-                                    scale: isGenerating ? 0.95 : 1
-                                }}
-                                transition={{ duration: 0.6 }}
+                                className="w-full h-full relative [transform-style:preserve-3d] transition-all duration-500"
+                                animate={{ rotateY: flip ? 180 : 0 }}
                             >
-                                {/* Background Template */}
-                                <div className="absolute inset-0 z-0">
-                                    {frontBg ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={frontBg} alt="Card Front" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center opacity-50 italic text-slate-400 text-sm">
-                                            No Template
+                                {/* FRONT FACE */}
+                                <div className="absolute inset-0 w-full h-full bg-white rounded-[24px] shadow-2xl overflow-hidden [backface-visibility:hidden] border border-slate-200">
+                                    {frontBg ? <img src={frontBg} className="w-full h-full object-cover absolute inset-0" /> : <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">Front Template</div>}
+
+                                    {/* Front Dynamic Content */}
+                                    <div className="absolute inset-0 p-6 flex flex-col items-center z-10">
+                                        <div className="w-full flex justify-between items-start mb-6">
+                                            <div className="w-12 h-12 bg-white/90 p-1 rounded-lg shadow-sm">
+                                                {branding?.logo_url ? <img src={branding.logo_url} className="w-full h-full object-contain" /> : <GraduationCap className="w-full h-full text-blue-600" />}
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-black text-slate-900 uppercase leading-none text-xs">{branding?.name || 'SCHOOL NAME'}</p>
+                                                <p className="text-[10px] font-bold text-slate-500">IDENTITY CARD</p>
+                                            </div>
                                         </div>
-                                    )}
+
+                                        <div className="w-32 h-36 bg-slate-200 rounded-xl border-4 border-white shadow-lg mb-4 overflow-hidden">
+                                            {sampleStudent?.photo_url ? <img src={sampleStudent.photo_url} className="w-full h-full object-cover" /> : <User className="w-full h-full p-6 text-slate-400" />}
+                                        </div>
+
+                                        <h2 className="text-xl font-black text-slate-900 uppercase text-center leading-tight mb-1">{sampleStudent?.full_name || 'STUDENT NAME'}</h2>
+                                        <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-bold rounded-full">STUDENT</span>
+
+                                        <div className="mt-auto w-full grid grid-cols-2 gap-4 pt-4 border-t border-slate-900/10">
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase">Class</p>
+                                                <p className="font-bold text-slate-800">{sampleStudent?.current_class || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-bold text-slate-400 uppercase">Roll No</p>
+                                                <p className="font-bold text-slate-800">{sampleStudent?.admission_number || '000'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Dynamic Content Overlay */}
-                                <div className="absolute inset-0 z-10 flex flex-col items-center p-6 bg-white/10 backdrop-blur-[1px]">
-                                    <div className="w-full flex justify-between items-start mb-8">
-                                        <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-md p-2">
-                                            {branding?.logo_url ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={branding.logo_url} alt="School Logo" className="w-full h-full object-contain" />
-                                            ) : (
-                                                <GraduationCap className="text-blue-600" />
-                                            )}
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black tracking-widest text-slate-900 uppercase leading-none">{branding?.name || 'Pak Nexus'}</p>
-                                            <p className="text-[8px] font-bold text-slate-600 uppercase">Identity Card</p>
-                                        </div>
-                                    </div>
+                                {/* BACK FACE */}
+                                <div className="absolute inset-0 w-full h-full bg-white rounded-[24px] shadow-2xl overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)] border border-slate-200">
+                                    {backBg ? <img src={backBg} className="w-full h-full object-cover absolute inset-0" /> : <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">Back Template</div>}
 
-                                    <div className="w-32 h-36 bg-slate-100 rounded-2xl border-2 border-white shadow-xl mb-4 flex items-center justify-center overflow-hidden">
-                                        {sampleStudent?.photo_url ? (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={sampleStudent.photo_url} alt="Student" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center text-slate-400">
-                                                <User size={64} className="mb-2" />
-                                                <span className="text-[10px] font-bold uppercase">No Photo</span>
+                                    <div className="absolute inset-0 p-6 flex flex-col z-10">
+                                        <div className="space-y-4 mt-8">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase">Father / Guardian</p>
+                                                <p className="font-bold text-slate-900 text-lg">{sampleStudent?.father_name || 'Parent Name'}</p>
                                             </div>
-                                        )}
-                                    </div>
-
-                                    <div className="text-center space-y-1 mb-6">
-                                        <p className="text-xl font-black text-slate-900 leading-tight uppercase truncate max-w-[280px]">
-                                            {sampleStudent?.full_name || 'STUDENT NAME'}
-                                        </p>
-                                        <div className="inline-block px-3 py-1 bg-blue-600 text-white font-bold text-[10px] rounded-full">STUDENT</div>
-                                    </div>
-
-                                    <div className="w-full grid grid-cols-2 gap-4 text-left border-t border-slate-200/50 pt-4 mb-auto">
-                                        <div>
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase">System ID</p>
-                                            <p className="text-[12px] font-black text-slate-800 tracking-tight truncate">
-                                                {sampleStudent?.admission_number || 'PN-000'}
-                                            </p>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase">Emergency Contact</p>
+                                                <p className="font-bold text-slate-900">{sampleStudent?.father_phone || '+00 000 0000'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase">School Address</p>
+                                                <p className="text-xs text-slate-700 leading-tight">{branding?.address || 'School Address Here'}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase">Class</p>
-                                            <p className="text-[12px] font-black text-slate-800">
-                                                {sampleStudent?.current_class || 'N/A'}
-                                            </p>
-                                        </div>
-                                    </div>
 
-                                    <div className="w-full flex justify-between items-end mt-2">
-                                        <div className="bg-white p-1 rounded">
-                                            <Barcode
-                                                value={sampleStudent?.admission_number || 'SAMPLE'}
-                                                width={1.2}
-                                                height={30}
-                                                fontSize={10}
-                                                displayValue={false}
-                                            />
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="h-6 w-24 bg-slate-900/5 rounded border border-slate-900/10 mb-1 flex items-center justify-center italic text-[6px] text-slate-400">Principal Sign</div>
-                                            <p className="text-[6px] font-bold uppercase text-slate-500">Authorized Signature</p>
+                                        <div className="mt-auto flex flex-col items-center gap-2">
+                                            <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100">
+                                                <QRCode value={sampleStudent?.student_id || 'DEMO'} size={80} />
+                                            </div>
+                                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Scan for Attendance</p>
                                         </div>
                                     </div>
                                 </div>
                             </motion.div>
                         </div>
-
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => { setIsGenerating(true); setTimeout(() => setIsGenerating(false), 800); }}
-                                className="p-3 bg-white border border-slate-200 rounded-full hover:bg-slate-50 transition-colors shadow-sm"
-                            >
-                                <RefreshCcw size={20} className="text-slate-600" />
-                            </button>
-                            <div className="text-[10px] items-center flex font-bold tracking-widest text-slate-400 uppercase bg-slate-100 px-4 rounded-full">
-                                {sampleStudent ? `Previewing: ${sampleStudent.full_name}` : 'No student data found'}
-                            </div>
-                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function SectionTitle({ title, subtitle }: any) {
-    return (
-        <div className="space-y-1">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">{title}</h2>
-            <p className="text-sm font-medium text-slate-400">{subtitle}</p>
-        </div>
-    );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function LayerToggle({ label, active = false, icon }: any) {
-    return (
-        <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${active ? 'border-blue-200 bg-blue-50/30' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
-            <div className="flex items-center gap-3">
-                <div className={active ? 'text-blue-600' : 'text-slate-400'}>
-                    {icon || <Layers size={18} />}
-                </div>
-                <span className={`text-sm font-bold ${active ? 'text-slate-900' : 'text-slate-400'}`}>{label}</span>
-            </div>
-            <div className={`w-10 h-5 rounded-full relative transition-colors ${active ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
             </div>
         </div>
     );

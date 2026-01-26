@@ -200,6 +200,8 @@ class TemplateCreate(BaseModel):
     """Create ID card template"""
     template_name: str = Field(..., min_length=3, max_length=100)
     layout_json: Dict[str, Any]
+    front_image_url: Optional[str] = None
+    back_image_url: Optional[str] = None
     is_default: bool = False
     is_active: bool = True
 
@@ -208,6 +210,8 @@ class TemplateUpdate(BaseModel):
     """Update ID card template"""
     template_name: Optional[str] = Field(None, min_length=3, max_length=100)
     layout_json: Optional[Dict[str, Any]] = None
+    front_image_url: Optional[str] = None
+    back_image_url: Optional[str] = None
     is_default: Optional[bool] = None
     is_active: Optional[bool] = None
 
@@ -217,6 +221,8 @@ class TemplateResponse(BaseModel):
     template_id: UUID
     template_name: str
     layout_json: Dict[str, Any]
+    front_image_url: Optional[str] = None
+    back_image_url: Optional[str] = None
     is_default: bool
     is_active: bool
     created_at: datetime
