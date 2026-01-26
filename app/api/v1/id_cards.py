@@ -315,9 +315,10 @@ async def init_template_schema(
     async with pool.acquire() as conn:
         await conn.execute("""
             ALTER TABLE id_card_templates DROP CONSTRAINT IF EXISTS id_card_templates_tenant_id_key;
-            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS template_name VARCHAR(100);
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS template_name VARCHAR(100) DEFAULT 'Unnamed Template';
             ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
             ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
         """)
         return {"message": "Template schema updated"}
 

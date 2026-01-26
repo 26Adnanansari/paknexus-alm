@@ -39,7 +39,10 @@ export default function IDCardGenerator() {
             await api.post('/id-cards/system/init-templates'); // Ensure schema
             const res = await api.get('/id-cards/templates');
             setTemplates(res.data);
-        } catch (e) { console.error("Templates fetch error", e); }
+        } catch (e) {
+            console.error("Templates fetch error", e);
+            toast.error("Failed to load templates");
+        }
     };
 
     const fetchStats = async () => {
@@ -74,7 +77,11 @@ export default function IDCardGenerator() {
     };
 
     const saveTemplate = async () => {
-        if (!frontBg || !templateName) return toast.error("Name and Front Image required");
+        if (!frontBg || !templateName.trim()) {
+            toast.error("Template name and front image are required");
+            return;
+        }
+
         setIsSaving(true);
         try {
             if (isEditing && selectedTemplate) {
@@ -96,7 +103,8 @@ export default function IDCardGenerator() {
                     layout_json: {},
                     front_image_url: frontBg,
                     back_image_url: backBg,
-                    is_active: true
+                    is_active: true,
+                    is_default: false
                 });
                 toast.success("Template Saved!");
                 setTemplates([res.data, ...templates]);
@@ -104,8 +112,9 @@ export default function IDCardGenerator() {
                 setTemplateName('');
                 setIsEditing(false);
             }
-        } catch (e) {
-            toast.error("Failed to save template");
+        } catch (e: any) {
+            console.error("Save error:", e);
+            toast.error(e.response?.data?.detail || "Failed to save template. Please try again.");
         } finally {
             setIsSaving(false);
         }
@@ -135,7 +144,6 @@ export default function IDCardGenerator() {
             setFrontBg(t.front_image_url);
             setBackBg(t.back_image_url);
             setTemplateName(t.template_name);
-            // Default to viewing mode, user can click "Edit" to modify
             setIsEditing(false);
         }
     };
@@ -160,7 +168,7 @@ export default function IDCardGenerator() {
                         <h1 className="text-4xl font-black text-slate-900 tracking-tighter">ID Center</h1>
                         <p className="text-slate-500 font-medium">Design, Manage, and Print Student IDs</p>
                     </div>
-                    <button onClick={() => window.location.href = '/dashboard'} className="flex items-center gap-2 font-bold text-slate-500">
+                    <button onClick={() => window.location.href = '/dashboard'} className="flex items-center gap-2 font-bold text-slate-500 hover:text-slate-700 transition-colors">
                         <ChevronLeft size={20} /> Dashboard
                     </button>
                 </div>
@@ -169,7 +177,7 @@ export default function IDCardGenerator() {
                     {/* LEFT PANEL: CONTROLS */}
                     <div className="space-y-6">
                         {/* 1. Template Selection */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                             <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                                 <CreditCard size={20} className="text-blue-600" />
                                 Select Template
@@ -177,7 +185,7 @@ export default function IDCardGenerator() {
                             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                                 <div
                                     onClick={clearSelection}
-                                    className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${!selectedTemplate ? 'border-blue-500 bg-blue-50' : 'border-dashed border-slate-200'}`}
+                                    className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl flex items-center justify-center cursor-pointer transition-all hover:border-blue-300 ${!selectedTemplate ? 'border-blue-500 bg-blue-50' : 'border-dashed border-slate-200'}`}
                                 >
                                     <span className="text-xs font-bold text-slate-500">New / Custom</span>
                                 </div>
@@ -185,15 +193,16 @@ export default function IDCardGenerator() {
                                     <div
                                         key={t.template_id}
                                         onClick={() => selectTemplate(t.template_id)}
-                                        className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl relative overflow-hidden cursor-pointer transition-all group ${selectedTemplate === t.template_id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
+                                        className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl relative overflow-hidden cursor-pointer transition-all group hover:scale-105 ${selectedTemplate === t.template_id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
                                     >
-                                        <img src={t.front_image_url} className="w-full h-full object-cover" />
-                                        <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[9px] p-1 font-bold truncate">
+                                        <img src={t.front_image_url} className="w-full h-full object-cover" alt={t.template_name} />
+                                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[9px] p-1 font-bold truncate">
                                             {t.template_name}
                                         </div>
                                         <button
                                             onClick={(e) => deleteTemplate(t.template_id, e)}
-                                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                            title="Delete template"
                                         >
                                             <Trash2 size={12} />
                                         </button>
@@ -203,56 +212,80 @@ export default function IDCardGenerator() {
                         </div>
 
                         {/* 2. Upload / Edit */}
-                        <div className="bg-white p-6 rounded-3xl border border-slate-200">
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-lg flex items-center gap-2">
                                     <Upload size={20} className="text-purple-600" />
                                     {isEditing ? 'Editing Template' : selectedTemplate ? 'Viewing Template' : 'New Design'}
                                 </h3>
                                 {selectedTemplate && !isEditing && (
-                                    <button onClick={startEditing} className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1 rounded-lg flex items-center gap-1">
+                                    <button onClick={startEditing} className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-100 transition-colors">
                                         <Edit size={14} /> Edit
                                     </button>
                                 )}
                             </div>
 
-                            <div className={`grid grid-cols-2 gap-4 mb-4 transition-opacity ${(!isEditing && selectedTemplate) ? 'opacity-80 pointer-events-none' : ''}`}>
+                            <div className={`grid grid-cols-2 gap-4 mb-4 transition-opacity ${(!isEditing && selectedTemplate) ? 'opacity-60 pointer-events-none' : ''}`}>
                                 <div className="space-y-2">
                                     <span className="text-xs font-bold text-slate-400 uppercase">Front</span>
-                                    <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative">
-                                        {frontBg ? <img src={frontBg} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" />}
-                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'front')} disabled={!isEditing && !!selectedTemplate} />
+                                    <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative transition-all hover:border-blue-300">
+                                        {frontBg ? <img src={frontBg} className="w-full h-full object-cover" alt="Front" /> : <Upload className="text-slate-300" />}
+                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'front')} disabled={!isEditing && !!selectedTemplate} />
                                     </label>
                                 </div>
                                 <div className="space-y-2">
                                     <span className="text-xs font-bold text-slate-400 uppercase">Back</span>
-                                    <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative">
-                                        {backBg ? <img src={backBg} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" />}
-                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'back')} disabled={!isEditing && !!selectedTemplate} />
+                                    <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative transition-all hover:border-blue-300">
+                                        {backBg ? <img src={backBg} className="w-full h-full object-cover" alt="Back" /> : <Upload className="text-slate-300" />}
+                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'back')} disabled={!isEditing && !!selectedTemplate} />
                                     </label>
                                 </div>
                             </div>
 
                             {(isEditing || !selectedTemplate) && (
-                                <div className="flex gap-2 bg-slate-50 p-3 rounded-xl">
+                                <div className="space-y-3 mt-4">
                                     <input
-                                        placeholder="Template Name (e.g. 2026 Standard)"
-                                        className="flex-1 bg-white border border-slate-200 rounded-lg px-3 text-sm"
+                                        placeholder="Template Name (e.g. Blue 2026 Standard)"
+                                        className="w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                                         value={templateName}
                                         onChange={e => setTemplateName(e.target.value)}
                                     />
-                                    <button onClick={saveTemplate} disabled={isSaving || !frontBg} className="bg-slate-900 text-white px-4 rounded-lg font-bold text-sm min-w-[100px]">
-                                        {isSaving ? 'Saving...' : (isEditing ? 'Update' : 'Save New')}
-                                    </button>
-                                    {isEditing && (
-                                        <button onClick={() => { setIsEditing(false); setTemplateName(templates.find(t => t.template_id === selectedTemplate)?.template_name || ''); }} className="text-red-500 font-bold text-xs">Cancel</button>
-                                    )}
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={saveTemplate}
+                                            disabled={isSaving || !frontBg || !templateName.trim()}
+                                            className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-200 hover:shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <RefreshCcw className="animate-spin" size={16} />
+                                                    Saving...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save size={16} />
+                                                    {isEditing ? 'Update Template' : 'Save Template'}
+                                                </>
+                                            )}
+                                        </button>
+                                        {isEditing && (
+                                            <button
+                                                onClick={() => {
+                                                    setIsEditing(false);
+                                                    setTemplateName(templates.find(t => t.template_id === selectedTemplate)?.template_name || '');
+                                                }}
+                                                className="px-4 py-3.5 bg-red-50 text-red-600 rounded-xl font-bold text-sm hover:bg-red-100 transition-all"
+                                            >
+                                                Cancel
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
 
                         {/* 3. Actions */}
-                        <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
+                        <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl transition-all flex items-center justify-center gap-2">
                             <Download /> Generate PDFs
                         </button>
                     </div>
@@ -260,8 +293,8 @@ export default function IDCardGenerator() {
                     {/* RIGHT PANEL: PREVIEW */}
                     <div className="relative flex flex-col items-center">
                         <div className="flex gap-4 mb-6">
-                            <button onClick={() => setFlip(false)} className={`px-4 py-2 rounded-full font-bold text-sm ${!flip ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}>Front Side</button>
-                            <button onClick={() => setFlip(true)} className={`px-4 py-2 rounded-full font-bold text-sm ${flip ? 'bg-slate-900 text-white' : 'bg-white text-slate-600'}`}>Back Side</button>
+                            <button onClick={() => setFlip(false)} className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${!flip ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>Front Side</button>
+                            <button onClick={() => setFlip(true)} className={`px-4 py-2 rounded-full font-bold text-sm transition-all ${flip ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 hover:bg-slate-100'}`}>Back Side</button>
                         </div>
 
                         {/* 3D FLIP CONTAINER */}
@@ -272,13 +305,13 @@ export default function IDCardGenerator() {
                             >
                                 {/* FRONT FACE */}
                                 <div className="absolute inset-0 w-full h-full bg-white rounded-[24px] shadow-2xl overflow-hidden [backface-visibility:hidden] border border-slate-200">
-                                    {frontBg ? <img src={frontBg} className="w-full h-full object-cover absolute inset-0" /> : <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">Front Template</div>}
+                                    {frontBg ? <img src={frontBg} className="w-full h-full object-cover absolute inset-0" alt="Front" /> : <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">Front Template</div>}
 
                                     {/* Front Dynamic Content */}
                                     <div className="absolute inset-0 p-6 flex flex-col items-center z-10">
                                         <div className="w-full flex justify-between items-start mb-6">
                                             <div className="w-12 h-12 bg-white/90 p-1 rounded-lg shadow-sm">
-                                                {branding?.logo_url ? <img src={branding.logo_url} className="w-full h-full object-contain" /> : <GraduationCap className="w-full h-full text-blue-600" />}
+                                                {branding?.logo_url ? <img src={branding.logo_url} className="w-full h-full object-contain" alt="Logo" /> : <GraduationCap className="w-full h-full text-blue-600" />}
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-black text-slate-900 uppercase leading-none text-xs">{branding?.name || 'SCHOOL NAME'}</p>
@@ -287,7 +320,7 @@ export default function IDCardGenerator() {
                                         </div>
 
                                         <div className="w-32 h-36 bg-slate-200 rounded-xl border-4 border-white shadow-lg mb-4 overflow-hidden">
-                                            {sampleStudent?.photo_url ? <img src={sampleStudent.photo_url} className="w-full h-full object-cover" /> : <User className="w-full h-full p-6 text-slate-400" />}
+                                            {sampleStudent?.photo_url ? <img src={sampleStudent.photo_url} className="w-full h-full object-cover" alt="Student" /> : <User className="w-full h-full p-6 text-slate-400" />}
                                         </div>
 
                                         <h2 className="text-xl font-black text-slate-900 uppercase text-center leading-tight mb-1">{sampleStudent?.full_name || 'STUDENT NAME'}</h2>
@@ -308,7 +341,7 @@ export default function IDCardGenerator() {
 
                                 {/* BACK FACE */}
                                 <div className="absolute inset-0 w-full h-full bg-white rounded-[24px] shadow-2xl overflow-hidden [backface-visibility:hidden] [transform:rotateY(180deg)] border border-slate-200">
-                                    {backBg ? <img src={backBg} className="w-full h-full object-cover absolute inset-0" /> : <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">Back Template</div>}
+                                    {backBg ? <img src={backBg} className="w-full h-full object-cover absolute inset-0" alt="Back" /> : <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">Back Template</div>}
 
                                     <div className="absolute inset-0 p-6 flex flex-col z-10">
                                         <div className="space-y-4 mt-8">
