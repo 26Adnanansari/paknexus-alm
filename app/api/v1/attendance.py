@@ -64,34 +64,62 @@ async def mark_attendance_batch(
                 
         return {"message": "Attendance marked successfully"}
 
+@router.post("/system/init-tables")
+async def init_attendance_tables(
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS attendance (
+                attendance_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                student_id UUID NOT NULL,
+                date DATE NOT NULL,
+                status VARCHAR(20) NOT NULL,
+                remarks TEXT,
+                period_number INT DEFAULT 1,
+                marked_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(student_id, date, period_number)
+            );
+            CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
+            CREATE INDEX IF NOT EXISTS idx_attendance_student ON attendance(student_id);
+        """)
+        return {"message": "Attendance tables initialized"}
+
 @router.get("/stats")
 async def get_attendance_stats(
     range: str = "week",
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    async with pool.acquire() as conn:
-        # Get constant denominator
-        total_students = await conn.fetchval("SELECT COUNT(*) FROM students WHERE status='active'")
-        if not total_students or total_students == 0:
-            return {"labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "data": [0,0,0,0,0,0,0]}
+    try:
+        async with pool.acquire() as conn:
+            # Check if table exists first (or let it fail and catch)
+            # Simplest is just try running query
             
-        days = 7 if range == 'week' else 30
-        
-        rows = await conn.fetch(f"""
-            SELECT date, COUNT(*) as present_count 
-            FROM attendance 
-            WHERE status = 'present' AND date >= CURRENT_DATE - INTERVAL '{days} days'
-            GROUP BY date 
-            ORDER BY date ASC
-        """)
-        
-        # Fill missing dates? For now just return found dates
-        labels = [r['date'].strftime('%a') for r in rows] 
-        data = [round((r['present_count'] / total_students) * 100, 1) for r in rows]
-        
-        return {
-            "labels": labels, 
-            "data": data, 
-            "avg_present": round(sum(data)/len(data) if data else 0, 1)
-        }
+            # Get constant denominator
+            total_students = await conn.fetchval("SELECT COUNT(*) FROM students WHERE status='active'")
+            if not total_students or total_students == 0:
+                return {"labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "data": [0,0,0,0,0,0,0]}
+                
+            days = 7 if range == 'week' else 30
+            
+            rows = await conn.fetch(f"""
+                SELECT date, COUNT(*) as present_count 
+                FROM attendance 
+                WHERE status = 'present' AND date >= CURRENT_DATE - INTERVAL '{days} days'
+                GROUP BY date 
+                ORDER BY date ASC
+            """)
+            
+            labels = [r['date'].strftime('%a') for r in rows] 
+            data = [round((r['present_count'] / total_students) * 100, 1) for r in rows]
+            
+            return {
+                "labels": labels, 
+                "data": data, 
+                "avg_present": round(sum(data)/len(data) if data else 0, 1)
+            }
+    except Exception as e:
+        print(f"Attendance Stats Error: {e}")
+        # Return empty structure instead of 500
+        return {"labels": [], "data": [], "avg_present": 0, "error": str(e)}

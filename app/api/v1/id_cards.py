@@ -354,3 +354,52 @@ async def create_template(
              json.dumps(template.layout_json), template.is_default, template.is_active)
         return dict(row)
 
+@router.delete("/templates/{template_id}")
+async def delete_template(
+    template_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Delete a template"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        result = await conn.execute("""
+            DELETE FROM id_card_templates
+            WHERE template_id = $1 AND tenant_id = $2
+        """, template_id, tenant_id)
+        if result == "DELETE 0":
+             raise HTTPException(status_code=404, detail="Template not found")
+        return {"message": "Template deleted"}
+
+@router.put("/templates/{template_id}", response_model=TemplateResponse)
+async def update_template(
+    template_id: UUID,
+    template: TemplateUpdate,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Update a template"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        # Check existence
+        existing = await conn.fetchrow("SELECT * FROM id_card_templates WHERE template_id=$1 AND tenant_id=$2", template_id, tenant_id)
+        if not existing:
+             raise HTTPException(status_code=404, detail="Template not found")
+             
+        # Update fields
+        # Ideally using a dynamic query builder, but given limited fields:
+        front = template.front_image_url if template.front_image_url is not None else existing['front_bg_url']
+        back = template.back_image_url if template.back_image_url is not None else existing['back_bg_url']
+        name = template.template_name if template.template_name is not None else existing['template_name']
+        layout = json.dumps(template.layout_json) if template.layout_json is not None else existing['field_positions']
+        active = template.is_active if template.is_active is not None else existing['is_active']
+        
+        row = await conn.fetchrow("""
+             UPDATE id_card_templates
+             SET template_name = $1, front_bg_url = $2, back_bg_url = $3, field_positions = $4, is_active = $5, updated_at = NOW()
+             WHERE template_id = $6 AND tenant_id = $7
+             RETURNING *
+        """, name, front, back, layout, active, template_id, tenant_id)
+        
+        return dict(row)
+

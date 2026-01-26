@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from typing import Optional
 import os
 import shutil
@@ -23,6 +23,7 @@ router = APIRouter(tags=["Uploads"])
 
 @router.post("/upload/image")
 async def upload_image(
+    request: Request,
     file: UploadFile = File(...),
     folder: str = "id_cards",
     current_user: dict = Depends(get_current_school_user)
@@ -61,11 +62,8 @@ async def upload_image(
         with file_path.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
-        # Return a URL that points to this server
-        # In production, this needs 'StaticFiles' mounted in main.py
-        # Assuming '/static' is mounted
-        # Use localhost for now or relative path
-        return {"url": f"/static/uploads/{filename}", "note": "Local fallback (Cloudinary not configured)"}
+        base_url = str(request.base_url).rstrip('/')
+        return {"url": f"{base_url}/static/uploads/{filename}", "note": "Local fallback"}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")

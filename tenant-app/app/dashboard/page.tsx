@@ -70,9 +70,22 @@ export default function Dashboard() {
                     ]);
 
                     // 2. Fetch Attendance Trends
-                    const attRes = await api.get('/attendance/stats');
-                    if (attRes.data && attRes.data.data && attRes.data.data.length > 0) {
-                        setAttendanceTrends(attRes.data);
+                    try {
+                        const attRes = await api.get('/attendance/stats');
+                        if (attRes.data?.error) {
+                            // If backend signals missing table or other error, try init
+                            console.log("Self-healing attendance tables...");
+                            await api.post('/attendance/system/init-tables');
+                            const retry = await api.get('/attendance/stats');
+                            if (!retry.data?.error) setAttendanceTrends(retry.data);
+                        } else if (attRes.data && attRes.data.data && attRes.data.data.length > 0) {
+                            setAttendanceTrends(attRes.data);
+                        }
+                    } catch (e) {
+                        // Fallback for 500 error (if backend not updated yet)
+                        try {
+                            await api.post('/attendance/system/init-tables');
+                        } catch (err) { console.error("Init failed", err); }
                     }
 
                 } catch (error) {

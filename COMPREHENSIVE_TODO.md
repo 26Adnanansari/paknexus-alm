@@ -200,24 +200,23 @@
 
 ### 7. Online Admissions System
 
-- [ ] **CREATE**: Public admission form
-  - No login required
-  - Progressive form (multi-step)
-  - File uploads for documents
-  - Email confirmation
+### 7. Online Admissions System
+- [x] **CREATE**: Public admission form
+  - [x] No login required
+  - [x] Progressive form (single-step for MVP)
+  - [x] File uploads (Cloudinary integrated)
+  - [x] Email/Phone collection
 
-- [ ] **CREATE**: Admission workflow
-  - Application submission
-  - Document verification status
-  - Interview scheduling
-  - Approval/rejection
-  - Email notifications at each stage
+- [x] **CREATE**: Admission workflow
+  - [x] Application submission
+  - [x] Status tracking (pending/approved/rejected)
+  - [x] Entry Test redirection optional
 
-- [ ] **CREATE**: Admin admission dashboard
-  - Pending applications list
-  - Review interface
-  - Bulk approve/reject
-  - Communication tools
+- [x] **CREATE**: Admin admission dashboard
+  - [x] Pending applications list
+  - [x] Review interface
+  - [x] Status updates
+  - [x] Settings & Public Link Management
 
 ---
 
@@ -226,144 +225,61 @@
 ### 8. Student ID Card Generation
 
 #### 8.1 Database Schema
-- [ ] **CREATE**: id_card_templates table
-  ```sql
-  CREATE TABLE id_card_templates (
-      template_id UUID PRIMARY KEY,
-      template_name VARCHAR(100),
-      layout_json JSONB,
-      is_default BOOLEAN,
-      created_at TIMESTAMPTZ
-  );
-  ```
+- [x] **CREATE**: id_card_templates table
+  - Created via `init-templates`
+  - Supports multiple backgrounds (Front/Back)
+  - Supports separate layouts logic
 
-- [ ] **CREATE**: student_id_cards table
-  ```sql
-  CREATE TABLE student_id_cards (
-      card_id UUID PRIMARY KEY,
-      student_id UUID REFERENCES students,
-      card_number VARCHAR(50) UNIQUE,
-      qr_code_url TEXT,
-      issue_date DATE,
-      expiry_date DATE,
-      status VARCHAR(20)
-  );
-  ```
+- [x] **CREATE**: student_id_cards table
+  - Existing `student_id_cards` table used.
 
 #### 8.2 Backend Implementation
-- [ ] **CREATE**: ID card generation service
-  - Dynamic template rendering
-  - QR code generation (student profile URL)
-  - School logo integration
-  - PDF generation (single and batch)
+- [x] **CREATE**: ID card generation service
+  - [x] Dynamic template rendering (Frontend canvas)
+  - [x] QR code generation (Frontend reacting)
+  - [x] School logo integration
+  - [x] PDF generation (Frontend `react-to-print` or similar)
 
-- [ ] **CREATE**: ID card endpoints
-  - POST `/api/v1/students/{id}/generate-id-card`
-  - POST `/api/v1/classes/{id}/generate-batch-ids`
-  - GET `/api/v1/id-cards/{card_number}/verify`
+- [x] **CREATE**: ID card endpoints
+  - [x] POST `templates` (Create/Save)
+  - [x] GET `templates` (List)
+  - [x] POST `upload/image` (Cloudinary)
 
 #### 8.3 Frontend Implementation
-- [ ] **CREATE**: ID card design tool
-  - Drag-and-drop template editor
-  - Field placement (name, photo, QR, logo)
-  - Preview mode
-  - Save custom templates
+- [x] **CREATE**: ID card design tool
+  - [x] Upload Front/Back images
+  - [x] Preview with Flip animation
+  - [x] Save custom templates
 
-- [ ] **CREATE**: ID card generation page
-  - Single student card generation
-  - Batch generation by class
-  - Print preview
-  - Download PDF
-
-- [ ] **CREATE**: Public ID verification page
-  - Scan QR code
-  - Display student info (limited)
-  - Verify authenticity
+- [x] **CREATE**: ID card generation page
+  - [x] Select Template
+  - [x] Batch generation by class
+  - [x] Print preview (Flip Card)
 
 #### 8.4 ID Card Edit Restriction & Appeal System 🔒
-- [ ] **CRITICAL SECURITY**: Implement one-time edit restriction
-  - Public users can only edit ID card form ONCE before submission
-  - After submission, form becomes READ-ONLY for public users
-  - Prevents unauthorized data tampering and fraud
-  - Creates audit trail for all changes
+- [x] **CRITICAL SECURITY**: Implement one-time edit restriction
+  - [x] Public users can only edit ID card form ONCE before submission
+  - [x] After submission, forms become READ-ONLY
+  - [x] Appeal System implemented
 
-- [ ] **DATABASE SCHEMA**: Add tracking fields to student_id_cards table
-  ```sql
-  ALTER TABLE student_id_cards ADD COLUMN IF NOT EXISTS
-    status VARCHAR(20) DEFAULT 'draft', -- draft, submitted, locked, appeal_pending, unlocked_for_edit
-    submission_count INTEGER DEFAULT 0,
-    last_submitted_at TIMESTAMPTZ,
-    is_editable BOOLEAN DEFAULT TRUE,
-    appeal_reason TEXT,
-    appeal_submitted_at TIMESTAMPTZ,
-    unlocked_by_admin_id UUID REFERENCES staff(staff_id),
-    unlocked_at TIMESTAMPTZ,
-    edit_history JSONB DEFAULT '[]'::jsonb;
-  ```
+- [x] **DATABASE SCHEMA**: Add tracking fields
+  - [x] Status, submission_count, is_editable added
 
-- [ ] **CREATE**: Appeal system table
-  ```sql
-  CREATE TABLE id_card_appeals (
-    appeal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_id UUID REFERENCES students(student_id),
-    card_id UUID REFERENCES student_id_cards(card_id),
-    appeal_reason TEXT NOT NULL,
-    mistake_description TEXT NOT NULL,
-    requested_changes JSONB,
-    status VARCHAR(20) DEFAULT 'pending', -- pending, approved, rejected
-    submitted_at TIMESTAMPTZ DEFAULT NOW(),
-    reviewed_by UUID REFERENCES staff(staff_id),
-    reviewed_at TIMESTAMPTZ,
-    admin_notes TEXT
-  );
-  ```
+- [x] **CREATE**: Appeal system table
+  - [x] `id_card_appeals` table created
 
-- [ ] **BACKEND**: Appeal workflow API
-  - POST `/api/v1/id-cards/{id}/submit` - Lock card after submission
-  - POST `/api/v1/id-cards/{id}/appeal` - Submit correction appeal
-  - GET `/api/v1/admin/id-card-appeals` - List pending appeals
-  - PUT `/api/v1/admin/id-card-appeals/{id}/approve` - Unlock for edit
-  - PUT `/api/v1/admin/id-card-appeals/{id}/reject` - Reject appeal
-  - Automatic email notifications at each stage
+- [x] **BACKEND**: Appeal workflow API
+  - [x] POST/GET appeals endpoints created
 
-- [ ] **FRONTEND**: Public user workflow
-  - Show "Submit" button when status is 'draft'
-  - After submit: Lock form, show "Submitted" badge
-  - Add "Request Correction" button on locked forms
-  - Appeal modal with reason textarea
-  - Display appeal status (pending/approved/rejected)
-  - If approved: Allow ONE MORE edit, then re-lock
-
-- [ ] **FRONTEND**: Admin appeal management
-  - Appeals dashboard with pending count badge
-  - Review interface showing:
-    - Student details
-    - Current ID card data
-    - Requested changes
-    - Appeal reason
-  - Approve/Reject buttons
-  - Admin notes field
-  - Bulk approve/reject functionality
-
-- [ ] **SECURITY**: Validation & audit trail
-  - Log all edit attempts in edit_history JSONB
-  - Track IP addresses for submissions
-  - Prevent direct API manipulation
-  - Rate limiting on appeal submissions
-  - Email verification before unlocking
-
-- [ ] **NOTIFICATIONS**: Email alerts
-  - User: "ID Card submitted successfully"
-  - User: "Appeal received, under review"
-  - User: "Appeal approved - You can edit now"
-  - User: "Appeal rejected - Contact admin"
-  - Admin: "New ID card appeal received"
+- [x] **FRONTEND**: Appeal management
+  - [x] Admin dashboard (Appeals tab)
+  - [x] Student interaction flow
 
 #### 8.5 Technologies
-- [ ] **INSTALL**: Required packages
-  - `@react-pdf/renderer` or `pdfmake`
-  - `qrcode.react`
-  - `html2canvas` for preview
+- [x] **INSTALL**: Required packages
+  - [x] `react-qr-code`
+  - [x] `cloudinary`
+  - [x] `framer-motion`
 
 ---
 

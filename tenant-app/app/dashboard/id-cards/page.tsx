@@ -5,17 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     CreditCard, Upload, Download, RefreshCcw, User,
     Barcode as BarcodeIcon, CheckCircle2, ChevronRight,
-    ChevronLeft, GraduationCap, Save, QrCode
+    ChevronLeft, GraduationCap, Save, QrCode, Trash2, Edit
 } from 'lucide-react';
 import { useBranding } from '@/context/branding-context';
-import Barcode from 'react-barcode';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import QRCode from 'react-qr-code';
 
 export default function IDCardGenerator() {
     const { branding } = useBranding();
-    const [step, setStep] = useState(1);
 
     // Template State
     const [templates, setTemplates] = useState<any[]>([]);
@@ -24,9 +22,9 @@ export default function IDCardGenerator() {
     const [backBg, setBackBg] = useState<string | null>(null);
     const [templateName, setTemplateName] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     // Generation State
-    const [isGenerating, setIsGenerating] = useState(false);
     const [studentCount, setStudentCount] = useState(0);
     const [sampleStudent, setSampleStudent] = useState<any>(null);
     const [flip, setFlip] = useState(false);
@@ -49,7 +47,7 @@ export default function IDCardGenerator() {
             const res = await api.get('/students?limit=1');
             const data = res.data.items || res.data;
             if (data.length > 0) {
-                setStudentCount(100); // Mock or real count
+                setStudentCount(100);
                 setSampleStudent(data[0]);
             }
         } catch (err) { console.error("Student fetch error", err); }
@@ -79,22 +77,55 @@ export default function IDCardGenerator() {
         if (!frontBg || !templateName) return toast.error("Name and Front Image required");
         setIsSaving(true);
         try {
-            const res = await api.post('/id-cards/templates', {
-                template_name: templateName,
-                layout_json: {}, // Dynamic positions future
-                front_image_url: frontBg,
-                back_image_url: backBg,
-                is_active: true
-            });
-            toast.success("Template Saved!");
-            setTemplates([res.data, ...templates]);
-            setSelectedTemplate(res.data.template_id);
-            setTemplateName('');
+            if (isEditing && selectedTemplate) {
+                // Update
+                const res = await api.put(`/id-cards/templates/${selectedTemplate}`, {
+                    template_name: templateName,
+                    layout_json: {},
+                    front_image_url: frontBg,
+                    back_image_url: backBg,
+                    is_active: true
+                });
+                toast.success("Template Updated!");
+                setTemplates(templates.map(t => t.template_id === selectedTemplate ? res.data : t));
+                setIsEditing(false);
+            } else {
+                // Create
+                const res = await api.post('/id-cards/templates', {
+                    template_name: templateName,
+                    layout_json: {},
+                    front_image_url: frontBg,
+                    back_image_url: backBg,
+                    is_active: true
+                });
+                toast.success("Template Saved!");
+                setTemplates([res.data, ...templates]);
+                setSelectedTemplate(res.data.template_id);
+                setTemplateName('');
+                setIsEditing(false);
+            }
         } catch (e) {
             toast.error("Failed to save template");
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const deleteTemplate = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm("Are you sure you want to delete this template?")) return;
+        try {
+            await api.delete(`/id-cards/templates/${id}`);
+            setTemplates(templates.filter(t => t.template_id !== id));
+            if (selectedTemplate === id) {
+                setSelectedTemplate('');
+                setFrontBg(null);
+                setBackBg(null);
+                setTemplateName('');
+                setIsEditing(false);
+            }
+            toast.success("Deleted successfully");
+        } catch (e) { toast.error("Delete failed"); }
     };
 
     const selectTemplate = (id: string) => {
@@ -103,8 +134,23 @@ export default function IDCardGenerator() {
             setSelectedTemplate(id);
             setFrontBg(t.front_image_url);
             setBackBg(t.back_image_url);
+            setTemplateName(t.template_name);
+            // Default to viewing mode, user can click "Edit" to modify
+            setIsEditing(false);
         }
     };
+
+    const startEditing = () => {
+        setIsEditing(true);
+    };
+
+    const clearSelection = () => {
+        setSelectedTemplate('');
+        setFrontBg(null);
+        setBackBg(null);
+        setTemplateName('');
+        setIsEditing(false);
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-10">
@@ -130,7 +176,7 @@ export default function IDCardGenerator() {
                             </h3>
                             <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                                 <div
-                                    onClick={() => { setSelectedTemplate(''); setFrontBg(null); setBackBg(null); }}
+                                    onClick={clearSelection}
                                     className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl flex items-center justify-center cursor-pointer transition-all ${!selectedTemplate ? 'border-blue-500 bg-blue-50' : 'border-dashed border-slate-200'}`}
                                 >
                                     <span className="text-xs font-bold text-slate-500">New / Custom</span>
@@ -139,12 +185,18 @@ export default function IDCardGenerator() {
                                     <div
                                         key={t.template_id}
                                         onClick={() => selectTemplate(t.template_id)}
-                                        className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl relative overflow-hidden cursor-pointer transition-all ${selectedTemplate === t.template_id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
+                                        className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl relative overflow-hidden cursor-pointer transition-all group ${selectedTemplate === t.template_id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
                                     >
                                         <img src={t.front_image_url} className="w-full h-full object-cover" />
                                         <div className="absolute bottom-0 inset-x-0 bg-black/50 text-white text-[9px] p-1 font-bold truncate">
                                             {t.template_name}
                                         </div>
+                                        <button
+                                            onClick={(e) => deleteTemplate(t.template_id, e)}
+                                            className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -152,28 +204,36 @@ export default function IDCardGenerator() {
 
                         {/* 2. Upload / Edit */}
                         <div className="bg-white p-6 rounded-3xl border border-slate-200">
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                                <Upload size={20} className="text-purple-600" />
-                                Background/Design
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-bold text-lg flex items-center gap-2">
+                                    <Upload size={20} className="text-purple-600" />
+                                    {isEditing ? 'Editing Template' : selectedTemplate ? 'Viewing Template' : 'New Design'}
+                                </h3>
+                                {selectedTemplate && !isEditing && (
+                                    <button onClick={startEditing} className="text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1 rounded-lg flex items-center gap-1">
+                                        <Edit size={14} /> Edit
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className={`grid grid-cols-2 gap-4 mb-4 transition-opacity ${(!isEditing && selectedTemplate) ? 'opacity-80 pointer-events-none' : ''}`}>
                                 <div className="space-y-2">
                                     <span className="text-xs font-bold text-slate-400 uppercase">Front</span>
                                     <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative">
                                         {frontBg ? <img src={frontBg} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" />}
-                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'front')} />
+                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'front')} disabled={!isEditing && !!selectedTemplate} />
                                     </label>
                                 </div>
                                 <div className="space-y-2">
                                     <span className="text-xs font-bold text-slate-400 uppercase">Back</span>
                                     <label className="block h-32 border-2 border-dashed border-slate-200 rounded-2xl hover:bg-slate-50 cursor-pointer flex items-center justify-center overflow-hidden relative">
                                         {backBg ? <img src={backBg} className="w-full h-full object-cover" /> : <Upload className="text-slate-300" />}
-                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'back')} />
+                                        <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'back')} disabled={!isEditing && !!selectedTemplate} />
                                     </label>
                                 </div>
                             </div>
 
-                            {!selectedTemplate && (
+                            {(isEditing || !selectedTemplate) && (
                                 <div className="flex gap-2 bg-slate-50 p-3 rounded-xl">
                                     <input
                                         placeholder="Template Name (e.g. 2026 Standard)"
@@ -181,9 +241,12 @@ export default function IDCardGenerator() {
                                         value={templateName}
                                         onChange={e => setTemplateName(e.target.value)}
                                     />
-                                    <button onClick={saveTemplate} disabled={isSaving || !frontBg} className="bg-slate-900 text-white px-4 rounded-lg font-bold text-sm">
-                                        {isSaving ? 'Saving...' : 'Save New'}
+                                    <button onClick={saveTemplate} disabled={isSaving || !frontBg} className="bg-slate-900 text-white px-4 rounded-lg font-bold text-sm min-w-[100px]">
+                                        {isSaving ? 'Saving...' : (isEditing ? 'Update' : 'Save New')}
                                     </button>
+                                    {isEditing && (
+                                        <button onClick={() => { setIsEditing(false); setTemplateName(templates.find(t => t.template_id === selectedTemplate)?.template_name || ''); }} className="text-red-500 font-bold text-xs">Cancel</button>
+                                    )}
                                 </div>
                             )}
                         </div>
