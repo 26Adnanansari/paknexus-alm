@@ -109,19 +109,25 @@ export default function FeeStructurePage() {
             return;
         }
 
+        setLoading(true);
         try {
-            await api.post('/fees/structure', {
+            console.log('Creating structure:', newStructure);
+            const response = await api.post('/fees/structure', {
                 class_name: newStructure.class_name,
                 fee_head_id: newStructure.fee_head_id,
                 amount: parseFloat(newStructure.amount),
                 frequency: newStructure.frequency
             });
+            console.log('Structure created:', response.data);
             toast.success('Fee structure created successfully');
             setNewStructure({ class_name: '', fee_head_id: '', amount: '', frequency: 'monthly' });
             setShowNewStructure(false);
-            fetchData();
+            await fetchData();
         } catch (error: any) {
+            console.error('Failed to create structure:', error);
             toast.error(error.response?.data?.detail || 'Failed to create structure');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -236,12 +242,29 @@ export default function FeeStructurePage() {
                         <p className="text-sm font-bold text-slate-600 mb-3">All Fee Heads ({feeHeads.length}):</p>
                         <div className="flex flex-wrap gap-2">
                             {feeHeads.map((head) => (
-                                <span
+                                <div
                                     key={head.head_id}
-                                    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-bold shadow-md"
+                                    className="group relative inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-bold shadow-md hover:shadow-lg transition-all"
                                 >
-                                    {head.head_name}
-                                </span>
+                                    <span>{head.head_name}</span>
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm(`Delete "${head.head_name}"? This cannot be undone.`)) {
+                                                try {
+                                                    await api.delete(`/fees/heads/${head.head_id}`);
+                                                    toast.success(`${head.head_name} deleted successfully`);
+                                                    fetchData();
+                                                } catch (error: any) {
+                                                    toast.error(error.response?.data?.detail || 'Failed to delete fee head');
+                                                }
+                                            }
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500 rounded-full"
+                                        title="Delete fee head"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -321,9 +344,18 @@ export default function FeeStructurePage() {
                             <div className="flex gap-3">
                                 <button
                                     onClick={createStructure}
-                                    className="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-700 transition-all flex items-center gap-2"
+                                    disabled={loading}
+                                    className="bg-green-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Save size={16} /> Save Structure
+                                    {loading ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" /> Saving...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save size={16} /> Save Structure
+                                        </>
+                                    )}
                                 </button>
                                 <button
                                     onClick={() => setShowNewStructure(false)}

@@ -139,6 +139,42 @@ async def list_fee_heads(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch fee heads: {str(e)}")
 
+@router.delete("/heads/{head_id}")
+async def delete_fee_head(
+    head_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Delete a fee head. Note: This will also delete all associated fee structures due to CASCADE."""
+    try:
+        async with pool.acquire() as conn:
+            # Check if fee head is used in any structures
+            count = await conn.fetchval(
+                "SELECT COUNT(*) FROM class_fee_structure WHERE fee_head_id = $1",
+                head_id
+            )
+            
+            if count > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot delete fee head. It is used in {count} fee structure(s). Please delete those structures first."
+                )
+            
+            # Delete the fee head
+            deleted = await conn.fetchval(
+                "DELETE FROM fee_heads WHERE head_id = $1 RETURNING head_id",
+                head_id
+            )
+            
+            if not deleted:
+                raise HTTPException(status_code=404, detail="Fee head not found")
+            
+            return {"message": "Fee head deleted successfully", "head_id": str(deleted)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete fee head: {str(e)}")
+
 # --- Class Fee Structure ---
 
 @router.post("/structure")
