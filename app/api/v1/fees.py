@@ -94,52 +94,126 @@ async def init_fee_tables(
 @router.post("/heads")
 async def create_fee_head(
     head: FeeHeadCreate,
+    current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    async with pool.acquire() as conn:
-        id = await conn.fetchval(
-            "INSERT INTO fee_heads (head_name) VALUES ($1) ON CONFLICT (head_name) DO NOTHING RETURNING head_id",
-            head.head_name
-        )
-        if not id:
-            id = await conn.fetchval("SELECT head_id FROM fee_heads WHERE head_name = $1", head.head_name)
-        return {"head_id": id, "head_name": head.head_name}
+    try:
+        async with pool.acquire() as conn:
+            # First, ensure table exists
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS fee_heads (
+                    head_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    head_name VARCHAR(100) NOT NULL UNIQUE,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """)
+            
+            id = await conn.fetchval(
+                "INSERT INTO fee_heads (head_name) VALUES ($1) ON CONFLICT (head_name) DO NOTHING RETURNING head_id",
+                head.head_name
+            )
+            if not id:
+                id = await conn.fetchval("SELECT head_id FROM fee_heads WHERE head_name = $1", head.head_name)
+            return {"head_id": str(id), "head_name": head.head_name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create fee head: {str(e)}")
 
 @router.get("/heads")
-async def list_fee_heads(pool: asyncpg.Pool = Depends(get_tenant_db_pool)):
-    async with pool.acquire() as conn:
-        rows = await conn.fetch("SELECT * FROM fee_heads ORDER BY head_name")
-        return [dict(r) for r in rows]
+async def list_fee_heads(
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    try:
+        async with pool.acquire() as conn:
+            # First, ensure table exists
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS fee_heads (
+                    head_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    head_name VARCHAR(100) NOT NULL UNIQUE,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """)
+            
+            rows = await conn.fetch("SELECT * FROM fee_heads ORDER BY head_name")
+            return [dict(r) for r in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch fee heads: {str(e)}")
 
 # --- Class Fee Structure ---
 
 @router.post("/structure")
 async def set_class_fee(
     data: ClassFeeCreate,
+    current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    async with pool.acquire() as conn:
-        await conn.execute("""
-            INSERT INTO class_fee_structure (class_name, fee_head_id, amount, frequency)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (class_name, fee_head_id) DO UPDATE 
-            SET amount = $3, frequency = $4
-        """, data.class_name, data.fee_head_id, data.amount, data.frequency)
-        return {"message": "Class fee updated"}
+    try:
+        async with pool.acquire() as conn:
+            # Ensure tables exist
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS fee_heads (
+                    head_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    head_name VARCHAR(100) NOT NULL UNIQUE,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+                
+                CREATE TABLE IF NOT EXISTS class_fee_structure (
+                    structure_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    class_name VARCHAR(50) NOT NULL, 
+                    fee_head_id UUID REFERENCES fee_heads(head_id) ON DELETE CASCADE,
+                    amount DECIMAL(10,2) NOT NULL,
+                    frequency VARCHAR(20) DEFAULT 'monthly',
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    UNIQUE(class_name, fee_head_id)
+                );
+            """)
+            
+            await conn.execute("""
+                INSERT INTO class_fee_structure (class_name, fee_head_id, amount, frequency)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (class_name, fee_head_id) DO UPDATE 
+                SET amount = $3, frequency = $4
+            """, data.class_name, data.fee_head_id, data.amount, data.frequency)
+            return {"message": "Class fee updated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to set class fee: {str(e)}")
 
 @router.get("/structure/{class_name}")
 async def get_class_structure(
-    class_name: str, 
+    class_name: str,
+    current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    async with pool.acquire() as conn:
-        rows = await conn.fetch("""
-            SELECT s.*, h.head_name 
-            FROM class_fee_structure s
-            JOIN fee_heads h ON s.fee_head_id = h.head_id
-            WHERE s.class_name = $1
-        """, class_name)
-        return [dict(r) for r in rows]
+    try:
+        async with pool.acquire() as conn:
+            # Ensure tables exist
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS fee_heads (
+                    head_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    head_name VARCHAR(100) NOT NULL UNIQUE,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+                
+                CREATE TABLE IF NOT EXISTS class_fee_structure (
+                    structure_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    class_name VARCHAR(50) NOT NULL, 
+                    fee_head_id UUID REFERENCES fee_heads(head_id) ON DELETE CASCADE,
+                    amount DECIMAL(10,2) NOT NULL,
+                    frequency VARCHAR(20) DEFAULT 'monthly',
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    UNIQUE(class_name, fee_head_id)
+                );
+            """)
+            
+            rows = await conn.fetch("""
+                SELECT s.*, h.head_name 
+                FROM class_fee_structure s
+                JOIN fee_heads h ON s.fee_head_id = h.head_id
+                WHERE s.class_name = $1
+            """, class_name)
+            return [dict(r) for r in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch class structure: {str(e)}")
 
 # --- Scholarship ---
 
