@@ -1,154 +1,203 @@
-# PakAi Nexus
+# 🎓 PakNexus ALM - School Management SaaS
 
-PakAi Nexus is a multi-tenant school management system with a Super Admin Control Plane and individual Tenant (School) Dashboards.
+**Multi-tenant Academic Learning Management System for Pakistani Schools**
 
-## 🚀 Easy Start (Development)
-
-To launch the entire platform (Backend, Admin, and Tenant App) with one command:
-
-### Windows
-1. Double-click `start_dev.bat` in the root directory.
-2. Or run in PowerShell: `.\start_dev.ps1`
-
-This will automatically:
-- Clean up any old processes running on ports 8000, 3000, and 3001.
-- Start the **Backend** on `http://localhost:8000`
-- Start the **Admin Dashboard** on `http://localhost:3000`
-- Start the **Tenant App** on `http://localhost:3001`
-
-### Docker (Production-ready)
-Full containerization is also available:
-```bash
-docker-compose up -d --build
-```
+[![Status](https://img.shields.io/badge/status-production--ready-green)]()
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)]()
+[![License](https://img.shields.io/badge/license-MIT-orange)]()
 
 ---
 
-## 🛠 Project Structure
-
-## 🚀 Quick Start (Fastest Way to Run)
-
-Use the automated launcher script to start everything at once.
-
-1.  Open **PowerShell** in the project root (`d:\almsaas`).
-2.  Run the launcher:
-    ```powershell
-    .\start_dev.ps1
-    ```
-    *(Note: The `.\` is important if the script is in your current directory)*
-
-This will:
-*   Install Python packages.
-*   Start the **FastAPI Backend** on `http://localhost:8000`.
-*   Start the **Next.js Frontend** on `http://localhost:3000`.
-
----
-
-## 🛠️ Detailed Setup
-
-If you need to set up the environment manually or for the first time:
+## 🚀 Quick Start
 
 ### Prerequisites
-*   Node.js (v18+)
-*   Python (v3.10+)
-*   Docker & Docker Compose (for Database)
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL (Neon account)
+- Cloudinary account (optional)
 
-### 1. Database Setup
-Start the Postgres database using Docker:
-```powershell
-docker-compose up -d postgres
-```
-This runs Postgres on port **5433** (to avoid conflicts with any local Postgres).
+### Installation
 
-### 2. Backend Setup (`/app`)
-```powershell
-# Create virtual environment (optional but recommended)
-python -m venv .venv
-.\.venv\Scripts\activate
+```bash
+# 1. Clone repository
+git clone https://github.com/26Adnanansari/paknexus-alm.git
+cd paknexus-alm
 
-# Install dependencies
+# 2. Backend setup
 pip install -r requirements.txt
-```
+cp .env.example .env  # Configure DATABASE_URL, SECRET_KEY
 
-### 3. Frontend Setup (`/admin-dashboard`)
-```powershell
-cd admin-dashboard
+# 3. Frontend setup
+cd tenant-app
 npm install
-```
+cp .env.local.example .env.local  # Configure API URLs
 
----
+# 4. Run development servers
+# Terminal 1 (Backend)
+uvicorn app.main:app --reload
 
-## 🗄️ Database Management (SQL)
-
-To run SQL scripts or check the database:
-
-### Option A: Using Docker Command
-You can execute SQL directly inside the container:
-```powershell
-docker exec -it almsaas-postgres psql -U postgres -d control_plane
-```
-Once inside `psql`, you can run commands like:
-```sql
-\dt                  -- List tables
-SELECT * FROM tenants; -- View tenants
-```
-
-### Option B: Applying Schema Changes
-If you modified `master_schema.sql`, re-apply it (WARNING: Deletes data):
-```powershell
-docker-compose down -v
-docker-compose up -d postgres
-```
-Or manually run the file:
-```powershell
-cat app/db/master_schema.sql | docker exec -i almsaas-postgres psql -U postgres -d control_plane
-```
-
-### Option C: Creating Superuser
-To create the initial admin account (`admin@pakainexus.com` / `admin`):
-```powershell
-$env:LOCAL_DATABASE_URL='postgresql://postgres:postgres@localhost:5433/control_plane'; python create_superuser.py
-```
-
----
-
-## 🚀 Starting the App (Manual)
-
-If you don't use `start_dev.ps1`, run these in **two separate terminals**:
-
-**Terminal 1: Backend**
-```powershell
-uvicorn app.main:app --reload --port 8000
-```
-
-**Terminal 2: Frontend**
-```powershell
-cd admin-dashboard
+# Terminal 2 (Frontend)
+cd tenant-app
 npm run dev
 ```
 
+Visit: http://localhost:3000
+
 ---
 
-## ☁️ Deployment Guide
+## 📚 Documentation
 
-### Backend (FastAPI)
-Deploy to **Railway**, **Render**, or **DigitalOcean App Platform**.
-1.  **Build Command**: `pip install -r requirements.txt`
-2.  **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-3.  **Environment Variables**:
-    *   `MASTER_DATABASE_URL`: Your production Postgres URL (e.g., NeonDB, Supabase).
-    *   `VAULT_MASTER_KEY`: A clean 32-byte hex string.
-    *   `SECRET_KEY`: A strong random string.
+| Document | Purpose |
+|----------|---------|
+| **[PROJECT_STATUS.md](./PROJECT_STATUS.md)** | 📊 Current state, completed features, architecture |
+| **[COMPREHENSIVE_TODO.md](./COMPREHENSIVE_TODO.md)** | ✅ Detailed task checklist |
+| **[COST_OPTIMIZATION.md](./COST_OPTIMIZATION.md)** | 💰 Cost-saving strategies |
+| **[ID_CARD_RESTRICTION_PLAN.md](./ID_CARD_RESTRICTION_PLAN.md)** | 🔒 Security implementation |
 
-### Frontend (Next.js)
-Deploy to **Vercel** (Recommended).
-1.  Connect your GitHub repository to Vercel.
-2.  Set Root Directory to `admin-dashboard`.
-3.  **Environment Variables**:
-    *   `NEXT_PUBLIC_API_URL`: Your production Backend URL (e.g., `https://api.pakainexus.com`).
-    *   `AUTH_SECRET`: Generate using `npx auth secret`.
+---
 
-### Database
-Use a managed Postgres provider like **NeonDB**, **Supabase**, or **Railway**.
-1.  Get the Connection String.
-2.  Set it as `MASTER_DATABASE_URL` in your Backend environment variables.
+## ✨ Features
+
+### ✅ Completed
+- 🎓 **Student Management** - CRUD, photos, class assignment
+- 👨‍🏫 **Staff Directory** - Teacher profiles, departments
+- 🪪 **ID Card System** - Template designer, QR codes, appeals
+- 📝 **Admissions** - Public form, admin dashboard
+- 📊 **Attendance** - Daily tracking, statistics
+- 💰 **Fee Management** - Structure, payments, receipts
+- 📚 **Curriculum** - Subject management
+- 🎯 **Karma Points** - Gamification system
+- 📸 **Moments** - School events feed
+
+### 🚧 In Progress
+- 📝 Exam management
+- 🗓️ Timetable system
+- 📄 Report cards
+- 📧 Notifications
+
+---
+
+## 🏗️ Tech Stack
+
+**Backend:**
+- FastAPI (Python 3.11)
+- PostgreSQL (Neon)
+- asyncpg
+- JWT authentication
+
+**Frontend:**
+- Next.js 14 (App Router)
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- NextAuth.js
+
+**Infrastructure:**
+- Render.com (Backend)
+- Vercel (Frontend)
+- Cloudinary (Images)
+
+---
+
+## 📁 Project Structure
+
+```
+paknexus-alm/
+├── app/                    # FastAPI backend
+│   ├── api/v1/            # API routes
+│   ├── core/              # Config, DB, security
+│   └── main.py            # App entry
+├── tenant-app/            # Next.js frontend
+│   ├── app/               # Pages (App Router)
+│   ├── components/        # React components
+│   └── lib/               # Utilities
+├── static/                # File uploads
+└── docs/                  # Documentation
+```
+
+---
+
+## 🔐 Environment Variables
+
+### Backend (.env)
+```bash
+DATABASE_URL=postgresql://user:pass@host/db
+SECRET_KEY=your-secret-key-here
+CLOUDINARY_URL=cloudinary://key:secret@cloud
+```
+
+### Frontend (.env.local)
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXTAUTH_SECRET=your-nextauth-secret
+NEXTAUTH_URL=http://localhost:3000
+```
+
+---
+
+## 🧪 Testing
+
+```bash
+# Backend
+python -c "from app.api.v1 import students; print('✅ OK')"
+
+# Frontend
+cd tenant-app
+npm run build
+```
+
+---
+
+## 🚀 Deployment
+
+**Automatic deployment on push to `main` branch**
+
+- Backend: https://paknexus-alm.onrender.com
+- Frontend: https://paknexus-alm-saas.vercel.app
+- API Docs: https://paknexus-alm.onrender.com/docs
+
+---
+
+## 💡 Key Concepts
+
+### Multi-Tenancy
+Each school gets isolated database schema. Tenant ID extracted from JWT token.
+
+### Authentication Flow
+1. Login → JWT issued with `tenant_id`
+2. API requests include token
+3. Backend scopes queries to tenant
+
+### File Uploads
+- Primary: Cloudinary (auto-optimization)
+- Fallback: Local storage (`static/uploads/`)
+
+---
+
+## 🤝 Contributing
+
+1. Check `PROJECT_STATUS.md` for current state
+2. Pick a task from `COMPREHENSIVE_TODO.md`
+3. Create feature branch
+4. Test: `npm run build` + Python imports
+5. Submit PR
+
+---
+
+## 📞 Support
+
+- **Issues:** [GitHub Issues](https://github.com/26Adnanansari/paknexus-alm/issues)
+- **Docs:** See documentation files above
+- **Live Demo:** https://paknexus-alm-saas.vercel.app
+
+---
+
+## 📄 License
+
+MIT License - See LICENSE file
+
+---
+
+**Built with ❤️ for Pakistani Schools**
+
+*Last updated: 2026-01-27*
