@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, MoreHorizontal, GraduationCap, Loader2, Upload, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, GraduationCap, Loader2, Upload, Edit, Trash2, X, User, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BulkUploadModal from '@/components/BulkUploadModal';
 import ShareIDCardLink from '@/components/ShareIDCardLink';
@@ -250,7 +250,7 @@ export default function StudentsPage() {
                         </div>
                     ) : (
                         students.map((student) => (
-                            <div key={student.student_id} className="p-4 space-y-3 bg-white hover:bg-slate-50 transition-colors">
+                            <div key={student.student_id} className="p-4 space-y-3 bg-white hover:bg-slate-50 transition-colors relative group border-b border-slate-100 last:border-0">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="h-12 w-12 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border border-blue-200 overflow-hidden">
@@ -261,64 +261,65 @@ export default function StudentsPage() {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-slate-900 text-lg">{student.full_name}</p>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                <span className="text-xs font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{student.admission_number}</span>
-                                                <span className="text-xs text-slate-500">• {student.gender}</span>
+                                            <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                                <a href={`/dashboard/students/${student.student_id}`} className="hover:underline focus:outline-none">
+                                                    {student.full_name}
+                                                </a>
+                                            </h3>
+                                            <div className="text-sm text-slate-500 font-medium flex items-center gap-2">
+                                                <span>{student.admission_number}</span>
+                                                <span className="w-1 h-1 bg-slate-300 rounded-full" />
+                                                <span>{student.current_class}</span>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => handleEditClick(student)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Edit"
-                                        >
-                                            <Edit size={20} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(student.student_id, student.full_name)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={20} />
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Class</p>
-                                        <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-sm font-bold border border-blue-100 inline-block">
-                                            {student.current_class || 'Unassigned'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Status</p>
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-bold ${student.status === 'active'
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : 'bg-slate-100 text-slate-600'
-                                            }`}>
-                                            <span className={`w-2 h-2 rounded-full ${student.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                            {student.status || 'Active'}
-                                        </span>
-                                    </div>
-                                </div>
-                                {(student.father_name || student.father_phone) && (
-                                    <div className="pt-2 border-t border-slate-50 mt-2">
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Parent Info</p>
-                                        <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                            <span className="font-medium text-slate-700 text-sm">{student.father_name || 'N/A'}</span>
-                                            <span className="text-slate-500 text-xs font-mono">{student.father_phone}</span>
+
+                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm border border-slate-100">
+                                            <a href={`/dashboard/students/${student.student_id}`} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="View Profile">
+                                                <User size={16} />
+                                            </a>
+                                            <button onClick={(e) => { e.stopPropagation(); handleEditClick(student); }} className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+                                                <Edit size={16} />
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(student.student_id, student.full_name); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
                                     </div>
-                                )}
+                                    <div className="grid grid-cols-2 gap-4 pt-2">
+                                        <div>
+                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Class</p>
+                                            <span className="bg-blue-50 text-blue-700 px-2.5 py-1 rounded-md text-sm font-bold border border-blue-100 inline-block">
+                                                {student.current_class || 'Unassigned'}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Status</p>
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-bold ${student.status === 'active'
+                                                ? 'bg-emerald-100 text-emerald-700'
+                                                : 'bg-slate-100 text-slate-600'
+                                                }`}>
+                                                <span className={`w-2 h-2 rounded-full ${student.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                                {student.status || 'Active'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {(student.father_name || student.father_phone) && (
+                                        <div className="pt-2 border-t border-slate-50 mt-2">
+                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Parent Info</p>
+                                            <div className="flex justify-between items-center bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                                                <span className="font-medium text-slate-700 text-sm">{student.father_name || 'N/A'}</span>
+                                                <span className="text-slate-500 text-xs font-mono">{student.father_phone}</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ))
                     )}
                 </div>
 
                 {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
+                < div className="hidden md:block overflow-x-auto" >
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider sticky top-0">
                             <tr className="h-10">
@@ -363,8 +364,12 @@ export default function StudentsPage() {
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <div className="font-bold text-slate-900">{student.full_name}</div>
-                                                    <div className="text-xs text-slate-500">{student.gender}</div>
+                                                    <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                                        <a href={`/dashboard/students/${student.student_id}`} className="hover:underline">
+                                                            {student.full_name}
+                                                        </a>
+                                                    </div>
+                                                    <div className="text-xs text-slate-500">{student.email || 'No email'}</div>
                                                 </div>
                                             </div>
                                         </td>

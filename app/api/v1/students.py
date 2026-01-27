@@ -13,8 +13,8 @@ router = APIRouter()
 # --- Models ---
 class StudentCreate(BaseModel):
     full_name: str
-    admission_number: str
-    admission_date: date  # REQUIRED by schema
+    admission_number: Optional[str] = None
+    admission_date: date
     date_of_birth: date
     gender: str
     current_class: Optional[str] = None
@@ -23,12 +23,100 @@ class StudentCreate(BaseModel):
     photo_url: Optional[str] = None
     email: Optional[str] = None
     address: Optional[str] = None
+    status: Optional[str] = 'active'
 
 class StudentResponse(StudentCreate):
     student_id: UUID
     status: str
 
+class StudentDocument(BaseModel):
+    title: str
+    url: str
+    doc_type: str = 'other' # academic, medical, legal, other
+
 # --- Endpoints ---
+
+@router.get("/{student_id}", response_model=dict)
+async def get_student(
+    student_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Get a single student details."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM students WHERE student_id = $1", student_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Student not found")
+        return dict(row)
+
+@router.get("/{student_id}/documents", response_model=List[dict])
+async def list_student_documents(
+    student_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """List documents for a student."""
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS student_documents (
+                document_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+                title VARCHAR(100) NOT NULL,
+                url TEXT NOT NULL,
+                doc_type VARCHAR(50) DEFAULT 'other',
+                uploaded_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+        rows = await conn.fetch("SELECT * FROM student_documents WHERE student_id = $1 ORDER BY uploaded_at DESC", student_id)
+        return [dict(row) for row in rows]
+
+@router.post("/{student_id}/documents")
+async def add_student_document(
+    student_id: UUID,
+    document: StudentDocument,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Add a document to a student profile."""
+    try:
+        async with pool.acquire() as conn:
+            # Ensure table exists
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS student_documents (
+                    document_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    student_id UUID NOT NULL REFERENCES students(student_id) ON DELETE CASCADE,
+                    title VARCHAR(100) NOT NULL,
+                    url TEXT NOT NULL,
+                    doc_type VARCHAR(50) DEFAULT 'other',
+                    uploaded_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """)
+            
+            row = await conn.fetchrow(
+                """
+                INSERT INTO student_documents (student_id, title, url, doc_type)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *
+                """,
+                student_id, document.title, document.url, document.doc_type
+            )
+            return dict(row)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to add document: {str(e)}")
+
+@router.delete("/{student_id}/documents/{document_id}")
+async def delete_student_document(
+    student_id: UUID,
+    document_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Delete a student document."""
+    async with pool.acquire() as conn:
+        result = await conn.execute("DELETE FROM student_documents WHERE document_id = $1 AND student_id = $2", document_id, student_id)
+        if result == "DELETE 0":
+            raise HTTPException(status_code=404, detail="Document not found")
+        return {"message": "Document deleted"}
 
 @router.get("/next-id")
 async def get_next_admission_number(

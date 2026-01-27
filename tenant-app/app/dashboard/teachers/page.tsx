@@ -196,13 +196,20 @@ export default function StaffPage() {
                                     {staff.role}
                                 </span>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button onClick={() => handleEditClick(staff)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16} /></button>
-                                    <button onClick={() => handleDelete(staff.staff_id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
+                                    <a href={`/dashboard/teachers/${staff.staff_id}`} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded" title="View Profile">
+                                        <User size={16} />
+                                    </a>
+                                    <button onClick={(e) => { e.stopPropagation(); handleEditClick(staff); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(staff.staff_id); }} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
                                 </div>
                             </div>
 
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{staff.full_name}</h3>
+                                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                    <a href={`/dashboard/teachers/${staff.staff_id}`} className="hover:underline focus:outline-none">
+                                        {staff.full_name}
+                                    </a>
+                                </h3>
                                 <p className="text-sm text-slate-500 font-medium">{staff.designation || 'No Designation'}</p>
                                 {staff.department && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><School size={12} /> {staff.department}</p>}
                             </div>

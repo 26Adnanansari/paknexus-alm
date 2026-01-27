@@ -174,32 +174,32 @@
       father_phone: Optional[str] = None  # Fix field name
   ```
 
-- [ ] **FIX**: Update frontend form
-  - Add admission_date date picker
-  - Rename contact_phone to father_phone
-  - Add validation messages
+- [x] **FIX**: Update frontend form
+  - [x] Add admission_date date picker
+  - [x] Rename contact_phone to father_phone
+  - [x] Add validation messages
 
 #### 6.2 Enhanced Student Features
-- [ ] **CREATE**: Student profile page
-  - View/edit student details
-  - Upload student photo
-  - Academic history
-  - Attendance summary
-  - Fee payment history
-  - Exam results
+- [x] **CREATE**: Student profile page
+  - [x] View/edit student details
+  - [x] Upload student photo
+  - [x] Academic history (via documents)
+  - [x] Attendance summary (placeholder)
+  - [x] Fee payment history (placeholder)
+  - [x] Exam results (placeholder)
 
-- [ ] **CREATE**: Bulk student import
-  - Excel/CSV upload
-  - Template download
-  - Data validation
-  - Duplicate detection
-  - Error reporting
+- [x] **CREATE**: Bulk student import
+  - [x] Excel/CSV upload
+  - [x] Template download
+  - [x] Data validation
+  - [x] Duplicate detection (via backend unique check)
+  - [x] Error reporting
 
-- [ ] **CREATE**: Document management
-  - Birth certificate upload
-  - Previous school documents
-  - Medical records
-  - ID proof (Aadhaar/B-Form)
+- [x] **CREATE**: Document management
+  - [x] Birth certificate upload
+  - [x] Previous school documents
+  - [x] Medical records
+  - [x] ID proof (Aadhaar/B-Form)
 
 ### 7. Online Admissions System
 
@@ -299,8 +299,8 @@
 - [x] **CREATE**: Staff API endpoints
   - [x] GET `/api/v1/staff` - List all staff
   - [x] POST `/api/v1/staff` - Add new staff
-  - [ ] PUT `/api/v1/staff/{id}` - Update staff
-  - [ ] DELETE `/api/v1/staff/{id}` - Remove staff
+  - [x] PUT `/api/v1/staff/{id}` - Update staff
+  - [x] DELETE `/api/v1/staff/{id}` - Remove staff
   - [ ] GET `/api/v1/staff/{id}/workload` - View teaching load
 
 - [ ] **CREATE**: Payroll calculation service
@@ -316,12 +316,12 @@
   - [x] Add staff modal/page
   - [x] Staff profile cards
 
-- [ ] **CREATE**: Staff profile page
-  - Personal details
-  - Professional qualifications
-  - Assigned classes/subjects
-  - Attendance history
-  - Salary details (encrypted display)
+- [x] **CREATE**: Staff profile page
+  - [x] Personal details
+  - [x] Professional qualifications
+  - [x] Assigned classes/subjects (placeholder)
+  - [x] Attendance history (placeholder)
+  - [x] Salary details (placeholder)
 
 - [ ] **CREATE**: Staff attendance page
   - Mark daily attendance
@@ -350,33 +350,33 @@
 - [x] Classes table exists
 - [x] Subjects table exists
 - [x] class_subjects junction table exists
-- [ ] **MISSING**: Frontend implementation
-- [ ] **MISSING**: API endpoints
+- [x] **MISSING**: Frontend implementation
+- [x] **MISSING**: API endpoints
 
 #### 10.2 Backend Development
-- [ ] **CREATE**: Classes API
-  - CRUD for classes
-  - Assign class teacher
-  - Add students to class
-  - Remove/transfer students
+- [x] **CREATE**: Classes API
+  - [x] CRUD for classes
+  - [x] Assign class teacher
+  - [ ] Add students to class
+  - [ ] Remove/transfer students
 
-- [ ] **CREATE**: Subjects API
-  - CRUD for subjects
-  - Assign subjects to classes
-  - Assign teachers to subjects
+- [x] **CREATE**: Subjects API
+  - [x] CRUD for subjects
+  - [x] Assign subjects to classes
+  - [x] Assign teachers to subjects
 
 #### 10.3 Frontend Development
-- [ ] **CREATE**: Classes management page
-  - List all classes
-  - Add/edit class
-  - Assign teacher
-  - View students in class
-  - Bulk operations
+- [x] **CREATE**: Classes management page
+  - [x] List all classes
+  - [x] Add/edit class
+  - [x] Assign teacher
+  - [ ] View students in class
+  - [ ] Bulk operations
 
-- [ ] **CREATE**: Subjects management page
-  - Subject catalog
-  - Subject allocation by class
-  - Teacher assignment
+- [x] **CREATE**: Subjects management page
+  - [x] Subject catalog
+  - [x] Subject allocation by class
+  - [x] Teacher assignment
 
 - [ ] **CREATE**: Curriculum planning tool
   - Academic year setup
