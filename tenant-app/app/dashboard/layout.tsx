@@ -17,6 +17,7 @@ import {
     LogOut,
     Camera,
     CreditCard,
+    DollarSign,
     type LucideIcon
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -50,6 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { icon: TrendingUp, label: "Overview", path: "/dashboard" },
         { icon: Users, label: "Students", path: "/dashboard/students" },
         { icon: GraduationCap, label: "Teachers", path: "/dashboard/teachers" },
+        { icon: DollarSign, label: "Fees", path: "/dashboard/fees" },
         { icon: CreditCard, label: "ID Cards", path: "/dashboard/id-cards" },
         { icon: Calendar, label: "Attendance", path: "/dashboard/attendance" },
         { icon: BookOpen, label: "Curriculum", path: "/dashboard/curriculum" },

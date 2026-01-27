@@ -346,12 +346,16 @@ async def create_template(
     """Create a new ID card template with Cloudinary URLs"""
     tenant_id = current_user["tenant_id"]
     async with pool.acquire() as conn:
+        # Support both field naming conventions
+        front_url = template.front_bg_url or template.front_image_url
+        back_url = template.back_bg_url or template.back_image_url
+        
         row = await conn.fetchrow("""
             INSERT INTO id_card_templates 
             (tenant_id, template_name, front_bg_url, back_bg_url, field_positions, is_default, is_active)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-        """, tenant_id, template.template_name, template.front_image_url, template.back_image_url, 
+        """, tenant_id, template.template_name, front_url, back_url, 
              json.dumps(template.layout_json), template.is_default, template.is_active)
         return dict(row)
 
@@ -387,10 +391,9 @@ async def update_template(
         if not existing:
              raise HTTPException(status_code=404, detail="Template not found")
              
-        # Update fields
-        # Ideally using a dynamic query builder, but given limited fields:
-        front = template.front_image_url if template.front_image_url is not None else existing['front_bg_url']
-        back = template.back_image_url if template.back_image_url is not None else existing['back_bg_url']
+        # Update fields - support both naming conventions
+        front_url = template.front_bg_url if template.front_bg_url is not None else (template.front_image_url if template.front_image_url is not None else existing['front_bg_url'])
+        back_url = template.back_bg_url if template.back_bg_url is not None else (template.back_image_url if template.back_image_url is not None else existing['back_bg_url'])
         name = template.template_name if template.template_name is not None else existing['template_name']
         layout = json.dumps(template.layout_json) if template.layout_json is not None else existing['field_positions']
         active = template.is_active if template.is_active is not None else existing['is_active']
@@ -400,7 +403,7 @@ async def update_template(
              SET template_name = $1, front_bg_url = $2, back_bg_url = $3, field_positions = $4, is_active = $5, updated_at = NOW()
              WHERE template_id = $6 AND tenant_id = $7
              RETURNING *
-        """, name, front, back, layout, active, template_id, tenant_id)
+        """, name, front_url, back_url, layout, active, template_id, tenant_id)
         
         return dict(row)
 

@@ -14,31 +14,47 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
     const [scanError, setScanError] = useState<string | null>(null);
 
     useEffect(() => {
-        const scanner = new Html5QrcodeScanner(
-            "reader",
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-            },
-            /* verbose= */ false
-        );
+        let scanner: Html5QrcodeScanner | null = null;
 
-        scanner.render(
-            (decodedText) => {
-                scanner.clear();
-                onScan(decodedText);
-            },
-            (errorMessage) => {
-                // parse error, ignore it.
-                // setScanError(errorMessage);
+        // Add a small delay to ensure DOM is ready
+        const initScanner = setTimeout(() => {
+            const readerElement = document.getElementById("reader");
+            if (!readerElement) {
+                console.error("QR reader element not found");
+                return;
             }
-        );
+
+            scanner = new Html5QrcodeScanner(
+                "reader",
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                },
+                /* verbose= */ false
+            );
+
+            scanner.render(
+                (decodedText) => {
+                    if (scanner) {
+                        scanner.clear().catch(err => console.error("Clear error:", err));
+                    }
+                    onScan(decodedText);
+                },
+                (errorMessage) => {
+                    // parse error, ignore it.
+                    // setScanError(errorMessage);
+                }
+            );
+        }, 100);
 
         return () => {
-            scanner.clear().catch(error => {
-                console.error("Failed to clear html5-qrcode scanner. ", error);
-            });
+            clearTimeout(initScanner);
+            if (scanner) {
+                scanner.clear().catch(error => {
+                    console.error("Failed to clear html5-qrcode scanner. ", error);
+                });
+            }
         };
     }, [onScan]);
 

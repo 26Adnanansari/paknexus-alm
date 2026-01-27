@@ -48,7 +48,8 @@ export default function IDCardGenerator() {
     const fetchStats = async () => {
         try {
             const res = await api.get('/students?limit=1');
-            const data = res.data.items || res.data;
+            // Backend returns array directly, not paginated
+            const data = Array.isArray(res.data) ? res.data : (res.data.items || []);
             if (data.length > 0) {
                 setStudentCount(100);
                 setSampleStudent(data[0]);
@@ -89,8 +90,8 @@ export default function IDCardGenerator() {
                 const res = await api.put(`/id-cards/templates/${selectedTemplate}`, {
                     template_name: templateName,
                     layout_json: {},
-                    front_image_url: frontBg,
-                    back_image_url: backBg,
+                    front_bg_url: frontBg,
+                    back_bg_url: backBg,
                     is_active: true
                 });
                 toast.success("Template Updated!");
@@ -101,8 +102,8 @@ export default function IDCardGenerator() {
                 const res = await api.post('/id-cards/templates', {
                     template_name: templateName,
                     layout_json: {},
-                    front_image_url: frontBg,
-                    back_image_url: backBg,
+                    front_bg_url: frontBg,
+                    back_bg_url: backBg,
                     is_active: true,
                     is_default: false
                 });
@@ -141,8 +142,8 @@ export default function IDCardGenerator() {
         const t = templates.find(x => x.template_id === id);
         if (t) {
             setSelectedTemplate(id);
-            setFrontBg(t.front_image_url);
-            setBackBg(t.back_image_url);
+            setFrontBg(t.front_bg_url);
+            setBackBg(t.back_bg_url);
             setTemplateName(t.template_name);
             setIsEditing(false);
         }
@@ -195,7 +196,7 @@ export default function IDCardGenerator() {
                                         onClick={() => selectTemplate(t.template_id)}
                                         className={`flex-shrink-0 w-24 h-32 border-2 rounded-xl relative overflow-hidden cursor-pointer transition-all group hover:scale-105 ${selectedTemplate === t.template_id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'}`}
                                     >
-                                        <img src={t.front_image_url} className="w-full h-full object-cover" alt={t.template_name} />
+                                        <img src={t.front_bg_url} className="w-full h-full object-cover" alt={t.template_name} />
                                         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[9px] p-1 font-bold truncate">
                                             {t.template_name}
                                         </div>
@@ -285,9 +286,17 @@ export default function IDCardGenerator() {
                         </div>
 
                         {/* 3. Actions */}
-                        <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl transition-all flex items-center justify-center gap-2">
-                            <Download /> Generate PDFs
-                        </button>
+                        <div className="space-y-3">
+                            <button
+                                onClick={() => window.location.href = '/dashboard/id-cards/select-students'}
+                                className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-purple-200 hover:bg-purple-700 hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            >
+                                <User /> Select Students
+                            </button>
+                            <button className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl transition-all flex items-center justify-center gap-2">
+                                <Download /> Generate PDFs
+                            </button>
+                        </div>
                     </div>
 
                     {/* RIGHT PANEL: PREVIEW */}
