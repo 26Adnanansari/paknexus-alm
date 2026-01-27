@@ -34,7 +34,7 @@ class StaffResponse(StaffCreate):
 @router.get("/", response_model=List[dict])
 async def list_staff(
     search: Optional[str] = None,
-    # role: Optional[str] = None, # Frontend sends role param
+    role: Optional[str] = None,
     limit: int = 100,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
@@ -71,12 +71,13 @@ async def list_staff(
             params.append(f"%{search}%")
             param_count += 1
             
-        # Filter logic if I want to support 'role' param from frontend
-        # The frontend sends params.role if roleFilter != 'all'
-        # I need to access query params from request or add 'role' to function sig
-        # But 'role' is not in function sig above. I'll add it via kwargs or simple check
+        if role and role != 'all':
+            query += f" AND role = ${param_count}"
+            params.append(role)
+            param_count += 1
         
-        query += f" ORDER BY created_at DESC LIMIT {limit}"
+        query += f" ORDER BY created_at DESC LIMIT ${param_count}"
+        params.append(limit)
         
         rows = await conn.fetch(query, *params)
         return [dict(row) for row in rows]
