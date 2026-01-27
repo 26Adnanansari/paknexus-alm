@@ -3,16 +3,20 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, User, Mail, Phone, School, Briefcase, MapPin, GraduationCap, DollarSign } from 'lucide-react';
+import { Plus, User, Mail, Phone, School, Briefcase, MapPin, GraduationCap, DollarSign, Edit, Trash2, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from 'sonner';
+import PhotoUpload from '@/components/PhotoUpload';
 
 export default function StaffPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [staffList, setStaffList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [editingStaff, setEditingStaff] = useState<any>(null);
     const [submitting, setSubmitting] = useState(false);
     const [roleFilter, setRoleFilter] = useState('all');
 
@@ -27,6 +31,7 @@ export default function StaffPage() {
         address: '',
         qualifications: '',
         salary_amount: '',
+        photo_url: '',
         join_date: new Date().toISOString().split('T')[0]
     });
 
@@ -65,7 +70,8 @@ export default function StaffPage() {
             designation: newStaff.designation.trim() || null,
             full_name: newStaff.full_name.trim(),
             employee_id: newStaff.employee_id.trim(),
-            salary_amount: newStaff.salary_amount ? parseFloat(newStaff.salary_amount) : null
+            salary_amount: newStaff.salary_amount ? parseFloat(newStaff.salary_amount) : null,
+            photo_url: newStaff.photo_url || null
         };
 
         try {
@@ -75,6 +81,7 @@ export default function StaffPage() {
                 full_name: '', employee_id: '', email: '', phone: '',
                 designation: '', department: '', role: 'teacher',
                 address: '', qualifications: '', salary_amount: '',
+                photo_url: '',
                 join_date: new Date().toISOString().split('T')[0]
             });
             fetchStaff();
@@ -86,6 +93,52 @@ export default function StaffPage() {
             toast.error(msg);
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleEditClick = (staff: any) => {
+        setEditingStaff({
+            ...staff,
+            // Map backend fields to frontend state if needed, though they seem aligned mainly
+            salary_amount: staff.salary_amount !== undefined ? staff.salary_amount : staff.salary,
+            join_date: staff.join_date || staff.joining_date
+        });
+        setIsEditOpen(true);
+    };
+
+    const handleEditChange = (field: string, value: any) => {
+        setEditingStaff((prev: any) => ({ ...prev, [field]: value }));
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            const payload = {
+                ...editingStaff,
+                salary_amount: editingStaff.salary_amount ? parseFloat(editingStaff.salary_amount) : null
+            };
+            await api.put(`/staff/${editingStaff.staff_id}`, payload);
+            setIsEditOpen(false);
+            fetchStaff();
+            toast.success("Staff updated successfully");
+        } catch (error: any) {
+            console.error(error);
+            toast.error("Failed to update staff");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDelete = async (staffId: string) => {
+        if (!confirm("Are you sure you want to delete this staff member?")) return;
+        try {
+            await api.delete(`/staff/${staffId}`);
+            fetchStaff();
+            toast.success("Staff deleted successfully");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to delete staff");
         }
     };
 
@@ -137,11 +190,15 @@ export default function StaffPage() {
                                     {staff.full_name?.[0]}
                                 </div>
                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${staff.role === 'teacher' ? 'bg-indigo-50 text-indigo-700' :
-                                        staff.role === 'admin' ? 'bg-purple-50 text-purple-700' :
-                                            'bg-slate-100 text-slate-600'
+                                    staff.role === 'admin' ? 'bg-purple-50 text-purple-700' :
+                                        'bg-slate-100 text-slate-600'
                                     }`}>
                                     {staff.role}
                                 </span>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => handleEditClick(staff)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16} /></button>
+                                    <button onClick={() => handleDelete(staff.staff_id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
+                                </div>
                             </div>
 
                             <div>
@@ -191,6 +248,11 @@ export default function StaffPage() {
                             </div>
 
                             <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6 overflow-y-auto">
+                                <PhotoUpload
+                                    currentPhotoUrl={newStaff.photo_url}
+                                    onPhotoUploaded={(url) => setNewStaff({ ...newStaff, photo_url: url })}
+                                    label="Staff Photo"
+                                />
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-700">Full Name <span className="text-red-500">*</span></label>
@@ -258,6 +320,108 @@ export default function StaffPage() {
                                     <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="rounded-xl">Cancel</Button>
                                     <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200">
                                         {submitting ? 'Saving Profile...' : 'Create Staff Profile'}
+                                    </Button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Edit Staff Modal */}
+            <AnimatePresence>
+                {isEditOpen && editingStaff && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => setIsEditOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                        >
+                            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900">Edit Staff Profile</h2>
+                                    <p className="text-sm text-slate-500">Update employee information</p>
+                                </div>
+                                <button onClick={() => setIsEditOpen(false)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20} /></button>
+                            </div>
+
+                            <form onSubmit={handleEditSubmit} className="p-6 md:p-8 space-y-6 overflow-y-auto">
+                                <PhotoUpload
+                                    currentPhotoUrl={editingStaff.photo_url}
+                                    onPhotoUploaded={(url) => handleEditChange('photo_url', url)}
+                                    label="Staff Photo"
+                                />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Full Name <span className="text-red-500">*</span></label>
+                                        <input required className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.full_name} onChange={e => handleEditChange('full_name', e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Employee ID <span className="text-red-500">*</span></label>
+                                        <input required className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono" value={editingStaff.employee_id} onChange={e => handleEditChange('employee_id', e.target.value)} />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Role</label>
+                                        <select className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white" value={editingStaff.role} onChange={e => handleEditChange('role', e.target.value)}>
+                                            <option value="teacher">Teacher</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="accountant">Accountant</option>
+                                            <option value="principal">Principal</option>
+                                            <option value="support">Support Staff</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Designation</label>
+                                        <input className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.designation || ''} onChange={e => handleEditChange('designation', e.target.value)} />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Department</label>
+                                        <input className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.department || ''} onChange={e => handleEditChange('department', e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Join Date</label>
+                                        <input type="date" required className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.join_date || ''} onChange={e => handleEditChange('join_date', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-slate-100" />
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><Mail size={14} /> Email Address</label>
+                                        <input type="email" className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.email || ''} onChange={e => handleEditChange('email', e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><Phone size={14} /> Phone Number</label>
+                                        <input className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.phone || ''} onChange={e => handleEditChange('phone', e.target.value)} />
+                                    </div>
+
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><MapPin size={14} /> Residential Address</label>
+                                        <input className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.address || ''} onChange={e => handleEditChange('address', e.target.value)} />
+                                    </div>
+
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><GraduationCap size={14} /> Qualifications</label>
+                                        <input className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.qualifications || ''} onChange={e => handleEditChange('qualifications', e.target.value)} />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2"><DollarSign size={14} /> Basic Salary</label>
+                                        <input type="number" className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" value={editingStaff.salary_amount || ''} onChange={e => handleEditChange('salary_amount', e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-6 sticky bottom-0 bg-white border-t border-slate-100 -mx-6 md:-mx-8 p-4">
+                                    <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl">Cancel</Button>
+                                    <Button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200">
+                                        {submitting ? <><Loader2 className="animate-spin mr-2 h-4 w-4" /> Updating...</> : 'Update Staff Profile'}
                                     </Button>
                                 </div>
                             </form>

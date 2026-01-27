@@ -42,10 +42,10 @@
 ### 2. Student Management Issues 🎓
 
 #### 2.1 Backend Issues
-- [ ] **BUG**: Students not adding properly
-  - Check backend validation errors
-  - Review database constraints (date_of_birth vs admission_date)
-  - Fix unique constraint handling
+- [x] **BUG**: Students not adding properly
+  - [x] Check backend validation errors
+  - [x] Review database constraints (date_of_birth vs admission_date)
+  - [x] Fix unique constraint handling
 - [x] **MISSING**: admission_date field not in CREATE form
   - [x] Schema requires admission_date (NOT NULL)
   - [x] Frontend form missing this field

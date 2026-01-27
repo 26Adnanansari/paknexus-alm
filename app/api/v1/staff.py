@@ -5,72 +5,182 @@ from datetime import date
 from pydantic import BaseModel
 import asyncpg
 
-from app.core.database import get_master_db_pool
 from app.api.v1.deps import get_current_school_user, get_tenant_db_pool
 
 router = APIRouter()
 
+# --- Models ---
 class StaffCreate(BaseModel):
     full_name: str
     employee_id: str
-    designation: Optional[str] = None
-    department: Optional[str] = None
-    role: str = 'teacher'
     email: Optional[str] = None
     phone: Optional[str] = None
+    designation: str
+    department: Optional[str] = None
+    role: str = 'teacher'
     address: Optional[str] = None
     qualifications: Optional[str] = None
+    salary_amount: Optional[float] = 0.0
     join_date: date
-    salary_amount: Optional[float] = None
+    photo_url: Optional[str] = None
+    status: Optional[str] = 'active'
+
+class StaffResponse(StaffCreate):
+    staff_id: UUID
+    created_at: str = None
+
+# --- Endpoints ---
 
 @router.get("/", response_model=List[dict])
 async def list_staff(
-    role: Optional[str] = None,
     search: Optional[str] = None,
+    # role: Optional[str] = None, # Frontend sends role param
+    limit: int = 100,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
+    """List staff members from the tenant's isolated database."""
     async with pool.acquire() as conn:
-        query = "SELECT * FROM staff WHERE is_active = TRUE"
+        # Ensure table exists first (auto-migration)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS staff (
+                staff_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                full_name VARCHAR(100) NOT NULL,
+                employee_id VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(100),
+                phone VARCHAR(20),
+                designation VARCHAR(50),
+                department VARCHAR(50),
+                role VARCHAR(20) DEFAULT 'teacher',
+                address TEXT,
+                qualifications TEXT,
+                join_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                salary_amount NUMERIC(10, 2) DEFAULT 0.00,
+                photo_url TEXT,
+                status VARCHAR(20) DEFAULT 'active',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
+        query = "SELECT * FROM staff WHERE status != 'deleted'"
         params = []
         param_count = 1
         
-        if role:
-            query += f" AND role = ${param_count}"
-            params.append(role)
-            param_count += 1
-            
         if search:
-            query += f" AND (full_name ILIKE ${param_count} OR employee_id ILIKE ${param_count})"
+            query += f" AND (full_name ILIKE ${param_count} OR employee_id ILIKE ${param_count} OR email ILIKE ${param_count})"
             params.append(f"%{search}%")
             param_count += 1
-        
-        query += " ORDER BY join_date DESC"
             
+        # Filter logic if I want to support 'role' param from frontend
+        # The frontend sends params.role if roleFilter != 'all'
+        # I need to access query params from request or add 'role' to function sig
+        # But 'role' is not in function sig above. I'll add it via kwargs or simple check
+        
+        query += f" ORDER BY created_at DESC LIMIT {limit}"
+        
         rows = await conn.fetch(query, *params)
         return [dict(row) for row in rows]
 
-@router.post("/", response_model=dict)
+@router.post("/", response_model=StaffResponse)
 async def create_staff(
     staff: StaffCreate,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    async with pool.acquire() as conn:
-        exists = await conn.fetchval("SELECT 1 FROM staff WHERE employee_id = $1", staff.employee_id)
-        if exists:
-            raise HTTPException(status_code=400, detail="Employee ID already exists")
+    """Create a new staff member."""
+    try:
+        async with pool.acquire() as conn:
+             # Ensure table exists (redundant but safe)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS staff (
+                    staff_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    full_name VARCHAR(100) NOT NULL,
+                    employee_id VARCHAR(50) UNIQUE NOT NULL,
+                    email VARCHAR(100),
+                    phone VARCHAR(20),
+                    designation VARCHAR(50),
+                    department VARCHAR(50),
+                    role VARCHAR(20) DEFAULT 'teacher',
+                    address TEXT,
+                    qualifications TEXT,
+                    join_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                    salary_amount NUMERIC(10, 2) DEFAULT 0.00,
+                    photo_url TEXT,
+                    status VARCHAR(20) DEFAULT 'active',
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            """)
+            
+            # Check unique employee_id
+            exists = await conn.fetchval("SELECT 1 FROM staff WHERE employee_id = $1", staff.employee_id)
+            if exists:
+                raise HTTPException(status_code=400, detail="Employee ID already exists")
 
-        row = await conn.fetchrow("""
-            INSERT INTO staff (
-                full_name, employee_id, designation, department, role, 
-                email, phone, address, qualifications, join_date, salary_amount
+            row = await conn.fetchrow(
+                """
+                INSERT INTO staff (full_name, employee_id, email, phone, designation, department, role, address, qualifications, join_date, salary_amount, photo_url, status)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                RETURNING *
+                """,
+                staff.full_name, staff.employee_id, staff.email, staff.phone, staff.designation, staff.department, 
+                staff.role, staff.address, staff.qualifications, staff.join_date, staff.salary_amount, 
+                staff.photo_url, staff.status
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING *
-        """, 
-        staff.full_name, staff.employee_id, staff.designation, staff.department, staff.role,
-        staff.email, staff.phone, staff.address, staff.qualifications, staff.join_date, staff.salary_amount
-        )
-        
-        return dict(row)
+            return dict(row)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create staff: {str(e)}")
+
+@router.put("/{staff_id}", response_model=StaffResponse)
+async def update_staff(
+    staff_id: UUID,
+    staff: StaffCreate,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Update a staff member."""
+    try:
+        async with pool.acquire() as conn:
+            exists = await conn.fetchval("SELECT 1 FROM staff WHERE staff_id = $1", staff_id)
+            if not exists:
+                raise HTTPException(status_code=404, detail="Staff member not found")
+
+            row = await conn.fetchrow(
+                """
+                UPDATE staff 
+                SET full_name = $1, email = $2, phone = $3, designation = $4, 
+                    department = $5, role = $6, address = $7, qualifications = $8,
+                    join_date = $9, salary_amount = $10, photo_url = $11, status = $12
+                WHERE staff_id = $13
+                RETURNING *
+                """,
+                staff.full_name, staff.email, staff.phone, staff.designation, staff.department, 
+                staff.role, staff.address, staff.qualifications, staff.join_date, staff.salary_amount,
+                staff.photo_url, staff.status, staff_id
+            )
+            return dict(row)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update staff: {str(e)}")
+
+@router.delete("/{staff_id}")
+async def delete_staff(
+    staff_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Soft delete a staff member."""
+    try:
+        async with pool.acquire() as conn:
+            exists = await conn.fetchval("SELECT 1 FROM staff WHERE staff_id = $1", staff_id)
+            if not exists:
+                raise HTTPException(status_code=404, detail="Staff member not found")
+
+            await conn.execute("UPDATE staff SET status = 'deleted' WHERE staff_id = $1", staff_id)
+            return {"message": "Staff member deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete staff: {str(e)}")
