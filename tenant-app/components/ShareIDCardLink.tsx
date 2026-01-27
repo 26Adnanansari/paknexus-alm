@@ -10,38 +10,75 @@ interface ShareLinkButtonProps {
 export default function ShareIDCardLink({ studentId, admissionNumber }: ShareLinkButtonProps) {
     const [copied, setCopied] = useState(false);
     const [showLink, setShowLink] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const getBaseUrl = () => {
+        if (typeof window === 'undefined') return '';
+        return window.location.origin;
+    };
 
     const generateLink = () => {
-        // Generate a secure token (in production, this should be done on backend)
-        const token = btoa(studentId); // Simple encoding for demo
-        const link = `${window.location.origin}/id-card/${token}`;
+        try {
+            setError(null);
+            // Generate a secure token (in production, this should be done on backend)
+            const token = btoa(studentId); // Simple encoding for demo
+            const baseUrl = getBaseUrl();
 
-        setShowLink(true);
+            if (!baseUrl) {
+                setError('Unable to generate link');
+                return;
+            }
 
-        // Copy to clipboard
-        navigator.clipboard.writeText(link);
-        setCopied(true);
+            const link = `${baseUrl}/id-card/${token}`;
 
-        setTimeout(() => setCopied(false), 3000);
+            setShowLink(true);
+
+            // Copy to clipboard
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(link);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 3000);
+            } else {
+                setError('Clipboard not supported');
+            }
+        } catch (err) {
+            console.error('Error generating link:', err);
+            setError('Failed to generate link');
+        }
     };
 
     const shareLink = async () => {
-        const token = btoa(studentId);
-        const link = `${window.location.origin}/id-card/${token}`;
+        try {
+            setError(null);
+            const token = btoa(studentId);
+            const baseUrl = getBaseUrl();
 
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: `ID Card Review for ${admissionNumber}`,
-                    text: 'Please review and approve your ID card information',
-                    url: link
-                });
-            } catch (err) {
-                console.error('Error sharing:', err);
+            if (!baseUrl) {
+                setError('Unable to generate link');
+                return;
             }
-        } else {
-            // Fallback to copy
-            generateLink();
+
+            const link = `${baseUrl}/id-card/${token}`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `ID Card Review for ${admissionNumber}`,
+                        text: 'Please review and approve your ID card information',
+                        url: link
+                    });
+                } catch (err) {
+                    console.error('Error sharing:', err);
+                    // User cancelled or error - fallback to copy
+                    generateLink();
+                }
+            } else {
+                // Fallback to copy
+                generateLink();
+            }
+        } catch (err) {
+            console.error('Error in shareLink:', err);
+            setError('Failed to share link');
         }
     };
 
@@ -77,11 +114,17 @@ export default function ShareIDCardLink({ studentId, admissionNumber }: ShareLin
                 </Button>
             </div>
 
-            {showLink && (
+            {error && (
+                <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                    {error}
+                </div>
+            )}
+
+            {showLink && !error && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
                     <p className="font-semibold text-blue-900 mb-1">Shareable Link:</p>
                     <p className="text-blue-700 break-all font-mono">
-                        {`${window.location.origin}/id-card/${btoa(studentId)}`}
+                        {`${getBaseUrl()}/id-card/${btoa(studentId)}`}
                     </p>
                     <p className="text-blue-600 mt-2 text-xs">
                         Send this link to student/parent for review and approval

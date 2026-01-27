@@ -7,6 +7,7 @@ import { Plus, Search, MoreHorizontal, GraduationCap, Loader2, Upload } from 'lu
 import { motion, AnimatePresence } from 'framer-motion';
 import BulkUploadModal from '@/components/BulkUploadModal';
 import ShareIDCardLink from '@/components/ShareIDCardLink';
+import PhotoUpload from '@/components/PhotoUpload';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from 'sonner';
 
@@ -397,8 +398,11 @@ export default function StudentsPage() {
                                         <textarea className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target resize-none h-20" value={newStudent.address} onChange={e => setNewStudent({ ...newStudent, address: e.target.value })} placeholder="Enter full address..." />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
-                                        <label className="text-sm font-bold text-slate-700">Student Photo URL</label>
-                                        <input className="w-full px-4 py-3 md:py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all touch-target" value={newStudent.photo_url} onChange={e => setNewStudent({ ...newStudent, photo_url: e.target.value })} placeholder="https://example.com/photo.jpg" />
+                                        <PhotoUpload
+                                            currentPhotoUrl={newStudent.photo_url}
+                                            onPhotoUploaded={(url) => setNewStudent({ ...newStudent, photo_url: url })}
+                                            label="Student Photo"
+                                        />
                                     </div>
                                 </div>
 
