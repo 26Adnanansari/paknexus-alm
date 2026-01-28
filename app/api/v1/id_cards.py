@@ -32,6 +32,145 @@ async def get_id_card_service(db=Depends(get_tenant_db_pool)) -> IDCardService:
 
 
 # ============================================================================
+# TEMPLATE MANAGEMENT
+# ============================================================================
+from app.api.v1.deps import get_master_db_pool
+from app.models.id_card import TemplateCreate, TemplateResponse, TemplateUpdate
+
+@router.post("/system/init-templates")
+async def init_template_schema(
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Update schema to support multiple templates"""
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            ALTER TABLE id_card_templates DROP CONSTRAINT IF EXISTS id_card_templates_tenant_id_key;
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS template_name VARCHAR(100) DEFAULT 'Unnamed Template';
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
+            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+        """)
+        return {"message": "Template schema updated"}
+
+@router.get("/templates", response_model=List[TemplateResponse])
+async def list_templates(
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """List all ID card templates for tenant"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM id_card_templates 
+            WHERE tenant_id = $1 AND is_active = TRUE
+            ORDER BY created_at DESC
+        """, tenant_id)
+        
+        results = []
+        for row in rows:
+            data = dict(row)
+            # Map field_positions (DB) to layout_json (Pydantic)
+            if 'field_positions' in data:
+                try:
+                    fp = data['field_positions']
+                    data['layout_json'] = json.loads(fp) if isinstance(fp, str) else fp
+                except:
+                    data['layout_json'] = {}
+            
+            # Map URLs
+            data['front_image_url'] = data.get('front_bg_url')
+            data['back_image_url'] = data.get('back_bg_url')
+            results.append(data)
+            
+        return results
+
+@router.post("/templates", response_model=TemplateResponse)
+async def create_template(
+    template: TemplateCreate,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Create a new ID card template with Cloudinary URLs"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        # Support both field naming conventions
+        front_url = template.front_bg_url or template.front_image_url
+        back_url = template.back_bg_url or template.back_image_url
+        
+        row = await conn.fetchrow("""
+            INSERT INTO id_card_templates 
+            (tenant_id, template_name, front_bg_url, back_bg_url, field_positions, is_default, is_active)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *
+        """, tenant_id, template.template_name, front_url, back_url, 
+             json.dumps(template.layout_json), template.is_default, template.is_active)
+             
+        data = dict(row)
+        data['layout_json'] = template.layout_json # Use input valid json
+        data['front_image_url'] = data.get('front_bg_url')
+        data['back_image_url'] = data.get('back_bg_url')
+        return data
+
+@router.delete("/templates/{template_id}")
+async def delete_template(
+    template_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Delete a template"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        result = await conn.execute("""
+            DELETE FROM id_card_templates
+            WHERE template_id = $1 AND tenant_id = $2
+        """, template_id, tenant_id)
+        if result == "DELETE 0":
+             raise HTTPException(status_code=404, detail="Template not found")
+        return {"message": "Template deleted"}
+
+@router.put("/templates/{template_id}", response_model=TemplateResponse)
+async def update_template(
+    template_id: UUID,
+    template: TemplateUpdate,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """Update a template"""
+    tenant_id = current_user["tenant_id"]
+    async with pool.acquire() as conn:
+        # Check existence
+        existing = await conn.fetchrow("SELECT * FROM id_card_templates WHERE template_id=$1 AND tenant_id=$2", template_id, tenant_id)
+        if not existing:
+             raise HTTPException(status_code=404, detail="Template not found")
+             
+        # Update fields - support both naming conventions
+        front_url = template.front_bg_url if template.front_bg_url is not None else (template.front_image_url if template.front_image_url is not None else existing['front_bg_url'])
+        back_url = template.back_bg_url if template.back_bg_url is not None else (template.back_image_url if template.back_image_url is not None else existing['back_bg_url'])
+        name = template.template_name if template.template_name is not None else existing['template_name']
+        layout = json.dumps(template.layout_json) if template.layout_json is not None else existing['field_positions']
+        active = template.is_active if template.is_active is not None else existing['is_active']
+        
+        row = await conn.fetchrow("""
+             UPDATE id_card_templates
+             SET template_name = $1, front_bg_url = $2, back_bg_url = $3, field_positions = $4, is_active = $5, updated_at = NOW()
+             WHERE template_id = $6 AND tenant_id = $7
+             RETURNING *
+        """, name, front_url, back_url, layout, active, template_id, tenant_id)
+        
+        data = dict(row)
+        if 'field_positions' in data:
+             try:
+                fp = data['field_positions']
+                data['layout_json'] = json.loads(fp) if isinstance(fp, str) else fp
+             except:
+                data['layout_json'] = {}
+        data['front_image_url'] = data.get('front_bg_url')
+        data['back_image_url'] = data.get('back_bg_url')
+        
+        return data
+
+
+# ============================================================================
 # ID CARD ENDPOINTS
 # ============================================================================
 
@@ -354,140 +493,5 @@ async def init_id_card_restrictions(pool: asyncpg.Pool = Depends(get_tenant_db_p
         raise HTTPException(status_code=500, detail=f"Init Schema Failed: {e}")
 
 # ============================================================================
-# TEMPLATE MANAGEMENT
-# ============================================================================
-from app.api.v1.deps import get_master_db_pool
-from app.models.id_card import TemplateCreate, TemplateResponse, TemplateUpdate
 
-@router.post("/system/init-templates")
-async def init_template_schema(
-    pool: asyncpg.Pool = Depends(get_master_db_pool)
-):
-    """Update schema to support multiple templates"""
-    async with pool.acquire() as conn:
-        await conn.execute("""
-            ALTER TABLE id_card_templates DROP CONSTRAINT IF EXISTS id_card_templates_tenant_id_key;
-            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS template_name VARCHAR(100) DEFAULT 'Unnamed Template';
-            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
-            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
-            ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
-        """)
-        return {"message": "Template schema updated"}
-
-@router.get("/templates", response_model=List[TemplateResponse])
-async def list_templates(
-    current_user: dict = Depends(get_current_school_user),
-    pool: asyncpg.Pool = Depends(get_master_db_pool)
-):
-    """List all ID card templates for tenant"""
-    tenant_id = current_user["tenant_id"]
-    async with pool.acquire() as conn:
-        rows = await conn.fetch("""
-            SELECT * FROM id_card_templates 
-            WHERE tenant_id = $1 AND is_active = TRUE
-            ORDER BY created_at DESC
-        """, tenant_id)
-        
-        results = []
-        for row in rows:
-            data = dict(row)
-            # Map field_positions (DB) to layout_json (Pydantic)
-            if 'field_positions' in data:
-                try:
-                    fp = data['field_positions']
-                    data['layout_json'] = json.loads(fp) if isinstance(fp, str) else fp
-                except:
-                    data['layout_json'] = {}
-            
-            # Map URLs
-            data['front_image_url'] = data.get('front_bg_url')
-            data['back_image_url'] = data.get('back_bg_url')
-            results.append(data)
-            
-        return results
-
-@router.post("/templates", response_model=TemplateResponse)
-async def create_template(
-    template: TemplateCreate,
-    current_user: dict = Depends(get_current_school_user),
-    pool: asyncpg.Pool = Depends(get_master_db_pool)
-):
-    """Create a new ID card template with Cloudinary URLs"""
-    tenant_id = current_user["tenant_id"]
-    async with pool.acquire() as conn:
-        # Support both field naming conventions
-        front_url = template.front_bg_url or template.front_image_url
-        back_url = template.back_bg_url or template.back_image_url
-        
-        row = await conn.fetchrow("""
-            INSERT INTO id_card_templates 
-            (tenant_id, template_name, front_bg_url, back_bg_url, field_positions, is_default, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *
-        """, tenant_id, template.template_name, front_url, back_url, 
-             json.dumps(template.layout_json), template.is_default, template.is_active)
-             
-        data = dict(row)
-        data['layout_json'] = template.layout_json # Use input valid json
-        data['front_image_url'] = data.get('front_bg_url')
-        data['back_image_url'] = data.get('back_bg_url')
-        return data
-
-@router.delete("/templates/{template_id}")
-async def delete_template(
-    template_id: UUID,
-    current_user: dict = Depends(get_current_school_user),
-    pool: asyncpg.Pool = Depends(get_master_db_pool)
-):
-    """Delete a template"""
-    tenant_id = current_user["tenant_id"]
-    async with pool.acquire() as conn:
-        result = await conn.execute("""
-            DELETE FROM id_card_templates
-            WHERE template_id = $1 AND tenant_id = $2
-        """, template_id, tenant_id)
-        if result == "DELETE 0":
-             raise HTTPException(status_code=404, detail="Template not found")
-        return {"message": "Template deleted"}
-
-@router.put("/templates/{template_id}", response_model=TemplateResponse)
-async def update_template(
-    template_id: UUID,
-    template: TemplateUpdate,
-    current_user: dict = Depends(get_current_school_user),
-    pool: asyncpg.Pool = Depends(get_master_db_pool)
-):
-    """Update a template"""
-    tenant_id = current_user["tenant_id"]
-    async with pool.acquire() as conn:
-        # Check existence
-        existing = await conn.fetchrow("SELECT * FROM id_card_templates WHERE template_id=$1 AND tenant_id=$2", template_id, tenant_id)
-        if not existing:
-             raise HTTPException(status_code=404, detail="Template not found")
-             
-        # Update fields - support both naming conventions
-        front_url = template.front_bg_url if template.front_bg_url is not None else (template.front_image_url if template.front_image_url is not None else existing['front_bg_url'])
-        back_url = template.back_bg_url if template.back_bg_url is not None else (template.back_image_url if template.back_image_url is not None else existing['back_bg_url'])
-        name = template.template_name if template.template_name is not None else existing['template_name']
-        layout = json.dumps(template.layout_json) if template.layout_json is not None else existing['field_positions']
-        active = template.is_active if template.is_active is not None else existing['is_active']
-        
-        row = await conn.fetchrow("""
-             UPDATE id_card_templates
-             SET template_name = $1, front_bg_url = $2, back_bg_url = $3, field_positions = $4, is_active = $5, updated_at = NOW()
-             WHERE template_id = $6 AND tenant_id = $7
-             RETURNING *
-        """, name, front_url, back_url, layout, active, template_id, tenant_id)
-        
-        data = dict(row)
-        if 'field_positions' in data:
-             try:
-                fp = data['field_positions']
-                data['layout_json'] = json.loads(fp) if isinstance(fp, str) else fp
-             except:
-                data['layout_json'] = {}
-        data['front_image_url'] = data.get('front_bg_url')
-        data['back_image_url'] = data.get('back_bg_url')
-        
-        return data
 
