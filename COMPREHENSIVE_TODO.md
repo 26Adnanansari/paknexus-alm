@@ -976,8 +976,8 @@
 
 ### Phase 4: Operations (Weeks 9-12)
 1. [x] Transport management
-2. [ ] Inventory & Asset Management
-3. [ ] Library management
+2. [x] Inventory & Asset Management
+3. [x] Library management
 4. [ ] Communication hub
 5. [ ] Financial reports
 
