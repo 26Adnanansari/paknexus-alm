@@ -193,6 +193,14 @@ async def create_student(
                 );
             """)
 
+            # Quick Migration for Dev (Ensure columns exist if table was created in earlier version)
+            try:
+                await conn.execute("ALTER TABLE students ADD COLUMN IF NOT EXISTS email VARCHAR(100)")
+                await conn.execute("ALTER TABLE students ADD COLUMN IF NOT EXISTS address TEXT")
+                await conn.execute("ALTER TABLE students ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'")
+            except Exception:
+                pass
+
             # Check admission number uniqueness
             exists = await conn.fetchval("SELECT 1 FROM students WHERE admission_number = $1", student.admission_number)
             if exists:

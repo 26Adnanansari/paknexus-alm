@@ -335,7 +335,24 @@ async def list_templates(
             WHERE tenant_id = $1 AND is_active = TRUE
             ORDER BY created_at DESC
         """, tenant_id)
-        return [dict(r) for r in rows]
+        
+        results = []
+        for row in rows:
+            data = dict(row)
+            # Map field_positions (DB) to layout_json (Pydantic)
+            if 'field_positions' in data:
+                try:
+                    fp = data['field_positions']
+                    data['layout_json'] = json.loads(fp) if isinstance(fp, str) else fp
+                except:
+                    data['layout_json'] = {}
+            
+            # Map URLs
+            data['front_image_url'] = data.get('front_bg_url')
+            data['back_image_url'] = data.get('back_bg_url')
+            results.append(data)
+            
+        return results
 
 @router.post("/templates", response_model=TemplateResponse)
 async def create_template(
@@ -357,7 +374,12 @@ async def create_template(
             RETURNING *
         """, tenant_id, template.template_name, front_url, back_url, 
              json.dumps(template.layout_json), template.is_default, template.is_active)
-        return dict(row)
+             
+        data = dict(row)
+        data['layout_json'] = template.layout_json # Use input valid json
+        data['front_image_url'] = data.get('front_bg_url')
+        data['back_image_url'] = data.get('back_bg_url')
+        return data
 
 @router.delete("/templates/{template_id}")
 async def delete_template(
@@ -405,5 +427,15 @@ async def update_template(
              RETURNING *
         """, name, front_url, back_url, layout, active, template_id, tenant_id)
         
-        return dict(row)
+        data = dict(row)
+        if 'field_positions' in data:
+             try:
+                fp = data['field_positions']
+                data['layout_json'] = json.loads(fp) if isinstance(fp, str) else fp
+             except:
+                data['layout_json'] = {}
+        data['front_image_url'] = data.get('front_bg_url')
+        data['back_image_url'] = data.get('back_bg_url')
+        
+        return data
 

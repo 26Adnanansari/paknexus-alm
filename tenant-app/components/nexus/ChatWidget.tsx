@@ -74,7 +74,7 @@ export default function ChatWidget() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => setIsOpen(true)}
-                        className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[100] bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-4 md:p-5 rounded-full shadow-2xl hover:shadow-blue-500/50 transition-all group flex items-center justify-center"
+                        className="fixed bottom-24 right-4 md:bottom-10 md:right-10 z-[100] bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-4 md:p-5 rounded-full shadow-2xl hover:shadow-blue-500/50 transition-all group flex items-center justify-center"
                         aria-label="Open Nexus AI"
                     >
                         {messages.length === 0 && (

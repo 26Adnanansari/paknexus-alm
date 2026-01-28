@@ -427,3 +427,68 @@ async def collect_fee(
             """, invoice['student_id'], payment.amount, payment.method, payment.invoice_id, current_user['user_id'], payment.remarks)
             
             return {"message": "Payment recorded successfully", "new_status": status}
+
+# --- Outstanding Reports ---
+
+@router.get("/outstanding", response_model=dict)
+async def get_outstanding_fees(
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Get list of students with outstanding fees"""
+    async with pool.acquire() as conn:
+        query = """
+            SELECT 
+                s.student_id,
+                s.full_name,
+                s.admission_number,
+                s.current_class,
+                COALESCE(SUM(fi.paid_amount), 0) as total_paid,
+                COALESCE(SUM(fi.payable_amount), 0) as total_due,
+                COALESCE(SUM(fi.payable_amount - fi.paid_amount), 0) as outstanding
+            FROM students s
+            JOIN fee_invoices fi ON s.student_id = fi.student_id
+            WHERE fi.status != 'paid'
+            GROUP BY s.student_id, s.full_name, s.admission_number, s.current_class
+            HAVING SUM(fi.payable_amount - fi.paid_amount) > 0
+        """
+        rows = await conn.fetch(query)
+        outstanding = [dict(row) for row in rows]
+        
+        return {
+            "total_defaulters": len(outstanding),
+            "total_outstanding": sum(float(x['outstanding']) for x in outstanding),
+            "students": outstanding
+        }
+
+@router.get("/reports/outstanding", response_model=dict)
+async def get_outstanding_report(
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Get outstanding fees report with statistics"""
+    async with pool.acquire() as conn:
+        query = """
+            SELECT 
+                COUNT(DISTINCT student_id) as total_defaulters,
+                SUM(payable_amount - paid_amount) as total_outstanding
+            FROM fee_invoices
+            WHERE status != 'paid'
+        """
+        row = await conn.fetchrow(query)
+        
+        totals = await conn.fetchrow("SELECT SUM(payable_amount) as total_invoiced, SUM(paid_amount) as total_collected FROM fee_invoices")
+        
+        total_invoiced = totals['total_invoiced'] or 0
+        total_collected = totals['total_collected'] or 0
+        collection_rate = (total_collected / total_invoiced * 100) if total_invoiced > 0 else 0
+        
+        total_defaulters = row['total_defaulters'] or 0
+        total_out = float(row['total_outstanding'] or 0)
+        
+        return {
+            "total_defaulters": total_defaulters,
+            "total_outstanding": total_out,
+            "collection_rate": float(collection_rate),
+            "average_per_student": (total_out / total_defaulters) if total_defaulters > 0 else 0
+        }

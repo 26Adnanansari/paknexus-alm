@@ -5,7 +5,7 @@ import { BrandingProvider } from "@/context/branding-context";
 
 export function Providers({ children }: { children: React.ReactNode }) {
     return (
-        <SessionProvider>
+        <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={false}>
             <BrandingProvider>
                 {children}
             </BrandingProvider>

@@ -35,7 +35,19 @@ export default function OutstandingFeesPage() {
         try {
             const params = classFilter ? `?class_name=${classFilter}` : '';
             const res = await api.get(`/fees/outstanding${params}`);
-            setStudents(res.data);
+            // Map backend fields to frontend interface
+            const mappedStudents = (res.data.students || []).map((s: any) => ({
+                student_id: s.student_id,
+                student_name: s.full_name,
+                admission_number: s.admission_number,
+                current_class: s.current_class,
+                total_fee: s.total_due,
+                total_paid: s.total_paid,
+                outstanding: s.outstanding,
+                last_payment_date: null, // Not currently returned
+                is_defaulter: true
+            }));
+            setStudents(mappedStudents);
         } catch (error) {
             console.error(error);
             toast.error('Failed to load outstanding fees');

@@ -112,6 +112,17 @@ async def create_staff(
                 );
             """)
             
+        # Smart Migration (Ensure columns exist)
+        try:
+            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS address TEXT")
+            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS qualifications TEXT")
+            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'teacher'")
+            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS salary_amount NUMERIC(10, 2) DEFAULT 0.00")
+            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS photo_url TEXT")
+            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'")
+        except Exception:
+            pass
+
             # Check unique employee_id
             exists = await conn.fetchval("SELECT 1 FROM staff WHERE employee_id = $1", staff.employee_id)
             if exists:
