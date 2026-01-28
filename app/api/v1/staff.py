@@ -60,7 +60,36 @@ async def list_staff(
                 status VARCHAR(20) DEFAULT 'active',
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
+            CREATE TABLE IF NOT EXISTS staff (
+                staff_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                full_name VARCHAR(100) NOT NULL,
+                employee_id VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(100),
+                phone VARCHAR(20),
+                designation VARCHAR(50),
+                department VARCHAR(50),
+                role VARCHAR(20) DEFAULT 'teacher',
+                address TEXT,
+                qualifications TEXT,
+                join_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                salary_amount NUMERIC(10, 2) DEFAULT 0.00,
+                photo_url TEXT,
+                status VARCHAR(20) DEFAULT 'active',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
         """)
+
+        # Smart Migration to ensure columns exist (Fix for 500 Error on old schemas)
+        try:
+             await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
+             await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS address TEXT")
+             await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS qualifications TEXT")
+             await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'teacher'")
+             await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS salary_amount NUMERIC(10, 2) DEFAULT 0.00")
+             await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS photo_url TEXT")
+             await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'")
+        except Exception:
+             pass
 
         query = "SELECT * FROM staff WHERE status != 'deleted'"
         params = []

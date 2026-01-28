@@ -65,6 +65,7 @@ export default function TimetablePage() {
     const [loading, setLoading] = useState(false);
     const [activeDay, setActiveDay] = useState('Monday'); // Mobile view state
     const [modalOpen, setModalOpen] = useState(false);
+    const [periodsModalOpen, setPeriodsModalOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ day: string, period_id: string } | null>(null);
 
     // Form
@@ -197,7 +198,7 @@ export default function TimetablePage() {
                             ))}
                         </select>
                         <button
-                            onClick={() => toast.info('Manage Periods feature coming soon')}
+                            onClick={() => setPeriodsModalOpen(true)}
                             className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
                             title="Configure Periods"
                         >
@@ -447,6 +448,193 @@ export default function TimetablePage() {
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Periods Configuration Modal */}
+            <AnimatePresence>
+                {periodsModalOpen && (
+                    <PeriodsConfigurationModal
+                        isOpen={periodsModalOpen}
+                        onClose={() => setPeriodsModalOpen(false)}
+                        periods={periods}
+                        onRefresh={fetchInitialData}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
+
+// --- Sub-Components ---
+
+function PeriodsConfigurationModal({ isOpen, onClose, periods, onRefresh }: { isOpen: boolean, onClose: () => void, periods: Period[], onRefresh: () => void }) {
+    const [newPeriod, setNewPeriod] = useState({
+        name: '',
+        start_time: '',
+        end_time: '',
+        is_break: false,
+        order_index: periods.length + 1
+    });
+    const [loading, setLoading] = useState(false);
+
+    const handleAdd = async () => {
+        if (!newPeriod.name || !newPeriod.start_time || !newPeriod.end_time) {
+            toast.error('Please fill all required fields');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await api.post('/timetable/periods', {
+                ...newPeriod,
+                start_time: newPeriod.start_time, // Ensure HH:MM format from input[time]
+                end_time: newPeriod.end_time
+            });
+            toast.success('Period added');
+            setNewPeriod({ ...newPeriod, name: '', start_time: '', end_time: '', order_index: newPeriod.order_index + 1 });
+            onRefresh();
+        } catch (error: any) {
+            toast.error(error.response?.data?.detail || 'Failed to add period');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure? This will delete all allocations for this period.')) return;
+        try {
+            await api.delete(`/timetable/periods/${id}`);
+            toast.success('Period deleted');
+            onRefresh();
+        } catch (error) {
+            toast.error('Failed to delete period');
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+                <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
+                    <div>
+                        <h3 className="font-bold text-xl text-slate-900">Configure School Periods</h3>
+                        <p className="text-slate-500 text-sm">Define the daily schedule structure</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500">
+                        <Plus className="rotate-45" size={24} />
+                    </button>
+                </div>
+
+                <div className="p-6 overflow-y-auto space-y-6">
+                    {/* Add New Form */}
+                    <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 space-y-4">
+                        <h4 className="font-bold text-blue-900 text-sm uppercase tracking-wide">Add New Period</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                            <div className="md:col-span-3">
+                                <label className="text-xs font-bold text-slate-500 ml-1">Name</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Period 1"
+                                    className="w-full p-2 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+                                    value={newPeriod.name}
+                                    onChange={e => setNewPeriod({ ...newPeriod, name: e.target.value })}
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="text-xs font-bold text-slate-500 ml-1">Start</label>
+                                <input
+                                    type="time"
+                                    className="w-full p-2 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-mono"
+                                    value={newPeriod.start_time}
+                                    onChange={e => setNewPeriod({ ...newPeriod, start_time: e.target.value })}
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="text-xs font-bold text-slate-500 ml-1">End</label>
+                                <input
+                                    type="time"
+                                    className="w-full p-2 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-mono"
+                                    value={newPeriod.end_time}
+                                    onChange={e => setNewPeriod({ ...newPeriod, end_time: e.target.value })}
+                                />
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="text-xs font-bold text-slate-500 ml-1">Order</label>
+                                <input
+                                    type="number"
+                                    className="w-full p-2 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-mono"
+                                    value={newPeriod.order_index}
+                                    onChange={e => setNewPeriod({ ...newPeriod, order_index: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+                            <div className="md:col-span-1 flex items-center pb-3">
+                                <label className="flex items-center gap-2 cursor-pointer" title="Is Break?">
+                                    <input
+                                        type="checkbox"
+                                        checked={newPeriod.is_break}
+                                        onChange={e => setNewPeriod({ ...newPeriod, is_break: e.target.checked })}
+                                        className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-xs font-bold text-slate-500 md:hidden">Is Break?</span>
+                                </label>
+                            </div>
+                            <div className="md:col-span-2">
+                                <button
+                                    onClick={handleAdd}
+                                    disabled={loading}
+                                    className="w-full py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                >
+                                    {loading ? 'Adding...' : 'Add'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* List */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center px-2">
+                            <h4 className="font-bold text-slate-900">Existing Periods ({periods.length})</h4>
+                        </div>
+
+                        {periods.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400 italic bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                No periods defined yet. Add one above.
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-100">
+                                {periods.sort((a, b) => a.order_index - b.order_index).map(p => (
+                                    <div key={p.period_id} className="p-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-mono text-xs text-slate-500 font-bold">
+                                                {p.order_index}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900 flex items-center gap-2">
+                                                    {p.name}
+                                                    {p.is_break && <span className="text-[10px] uppercase bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold">Break</span>}
+                                                </div>
+                                                <div className="text-xs text-slate-500 font-mono">
+                                                    {p.start_time.slice(0, 5)} - {p.end_time.slice(0, 5)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDelete(p.period_id)}
+                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
+
