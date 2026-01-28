@@ -301,6 +301,58 @@ async def get_pending_count(
     }
 
 
+
+# ============================================================================
+# SCHEMA INITIALIZATION
+# ============================================================================
+
+@router.post("/system/init-restrictions")
+async def init_id_card_restrictions(pool: asyncpg.Pool = Depends(get_tenant_db_pool)):
+    """Initialize schema for ID card restrictions and appeals"""
+    try:
+        async with pool.acquire() as conn:
+             # Ensure extension
+             await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
+
+             # 1. Update ID Cards Table
+             await conn.execute("""
+                ALTER TABLE student_id_cards 
+                ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'draft',
+                ADD COLUMN IF NOT EXISTS submission_count INTEGER DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS last_submitted_at TIMESTAMPTZ,
+                ADD COLUMN IF NOT EXISTS is_editable BOOLEAN DEFAULT TRUE,
+                ADD COLUMN IF NOT EXISTS appeal_reason TEXT,
+                ADD COLUMN IF NOT EXISTS appeal_submitted_at TIMESTAMPTZ,
+                ADD COLUMN IF NOT EXISTS unlocked_by_admin_id UUID,
+                ADD COLUMN IF NOT EXISTS unlocked_at TIMESTAMPTZ,
+                ADD COLUMN IF NOT EXISTS edit_history JSONB DEFAULT '[]'::jsonb;
+                
+                CREATE INDEX IF NOT EXISTS idx_id_cards_status ON student_id_cards(status);
+             """)
+             
+             # 2. Appeals Table
+             await conn.execute("""
+                CREATE TABLE IF NOT EXISTS id_card_appeals (
+                    appeal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    student_id UUID NOT NULL, 
+                    card_id UUID NOT NULL REFERENCES student_id_cards(card_id) ON DELETE CASCADE,
+                    appeal_reason TEXT NOT NULL,
+                    mistake_description TEXT NOT NULL,
+                    requested_changes JSONB,
+                    status VARCHAR(20) DEFAULT 'pending',
+                    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+                    reviewed_by UUID,
+                    reviewed_at TIMESTAMPTZ,
+                    admin_notes TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS idx_appeals_status ON id_card_appeals(status);
+             """)
+             return {"message": "Restrictions Schema Initialized"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Init Schema Failed: {e}")
+
 # ============================================================================
 # TEMPLATE MANAGEMENT
 # ============================================================================
