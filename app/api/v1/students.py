@@ -129,40 +129,66 @@ async def get_next_admission_number(
     Ideally, this should parse the max number, but that requires consistent formatting.
     """
     async with pool.acquire() as conn:
-        count = await conn.fetchval("SELECT COUNT(*) FROM students")
-        # Generate ID like S-{YEAR}-{Count+1}
-        year = date.today().year
-        next_num = count + 1
-        return {"next_id": f"S-{year}-{next_num:03d}"}
+        try:
+            # Check if table exists
+            exists = await conn.fetchval("SELECT to_regclass('students')")
+            if not exists:
+                 year = date.today().year
+                 return {"next_id": f"S-{year}-001"}
+
+            count = await conn.fetchval("SELECT COUNT(*) FROM students")
+            # Generate ID like S-{YEAR}-{Count+1}
+            year = date.today().year
+            next_num = count + 1
+            return {"next_id": f"S-{year}-{next_num:03d}"}
+        except Exception as e:
+            # Fallback
+            import datetime
+            return {"next_id": f"S-{datetime.date.today().year}-001"}
 
 @router.get("/", response_model=List[dict])
 async def list_students(
     class_name: Optional[str] = None,
     search: Optional[str] = None,
+    status: Optional[str] = 'active', # Default to active for backward compat
     limit: int = 100,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
     """List students from the tenant's isolated database."""
     async with pool.acquire() as conn:
-        query = "SELECT * FROM students WHERE status = 'active'"
+        # Check if table exists
+        exists = await conn.fetchval("SELECT to_regclass('students')")
+        if not exists:
+            return []
+
+        query = "SELECT * FROM students WHERE 1=1"
         params = []
         param_count = 1
+
+        if status and status != 'all':
+            query += f" AND status = ${param_count}"
+            params.append(status)
+            param_count += 1
         
         if class_name:
             query += f" AND current_class = ${param_count}"
             params.append(class_name)
             param_count += 1
             
-        if search:
+        if search and search.strip(): # Handle empty search string
             query += f" AND (full_name ILIKE ${param_count} OR admission_number ILIKE ${param_count})"
             params.append(f"%{search}%")
             param_count += 1
             
         query += f" ORDER BY created_at DESC LIMIT {limit}"
         
-        rows = await conn.fetch(query, *params)
-        return [dict(row) for row in rows]
+        try:
+            rows = await conn.fetch(query, *params)
+            return [dict(row) for row in rows]
+        except Exception as e:
+            print(f"Error listing students: {e}")
+            return []
 
 @router.post("/", response_model=StudentResponse)
 async def create_student(

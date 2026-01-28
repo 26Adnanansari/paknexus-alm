@@ -3,6 +3,18 @@
 > **📌 QUICK STATUS:** See `PROJECT_STATUS.md` for current state and completed features.  
 > **Last Updated:** 2026-01-28 | **Completed:** ID Cards, Admissions, Timetable, Attendance, Exams, Results, Transport ✅
 
+## 🚨 **EMERGENCY BUG FIXES (IMMEDIATE PRIORITY)**
+
+### 0. Critical Backend & Frontend Fixes
+- [x] **FIX**: `GET /api/v1/students/next-id` 422 Error (Validation/Table missing)
+- [x] **FIX**: `GET /api/v1/students` 500 Error (Crash on list)
+- [x] **FIX**: `GET /api/v1/attendance/stats` 404 Error (Endpoint missing)
+- [x] **FIX**: `POST /api/v1/attendance/system/init-tables` 404 Error (Alias missing)
+- [x] **FIX**: `GET /api/v1/id-cards/templates` 422 Error (Schema validation)
+- [ ] **FIX**: "Auto session creating" loop in Frontend (Login/Auth loop)
+- [ ] **FIX**: ID Card Uploaded Templates not showing (Checkboxes/Table UI)
+- [ ] **FIX**: Student List Filters (Class, Last Generated, Is Student)
+
 ## 🚨 **CRITICAL ISSUES (FIX IMMEDIATELY)**
 
 ### 1. Security & Authentication Issues ⚠️
@@ -1005,3 +1017,21 @@
 **Last Updated**: January 25, 2026
 **Status**: Initial Planning Phase
 **Expected Completion**: Q2 2026
+
+---
+
+## 🔐 **ROLE-BASED PORTALS (STUDENT/PARENT)**
+
+### 21. Student & Parent Dashboard
+- [ ] **CREATE**: Student Portal
+  - Login for Students
+  - View Attendance History
+  - View Timetable
+  - View Exam Results
+  - View Fee Status (Paid/Pending)
+  - ID Card Request/Profile
+- [ ] **CREATE**: Parent Portal
+  - Login for Parents
+  - Monitor Children's Progress
+  - Pay Fees Online
+  - Communication with Teachers

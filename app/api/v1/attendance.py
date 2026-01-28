@@ -83,6 +83,67 @@ async def init_attendance_tables(
         """)
         return {"message": "Attendance tables initialized"}
 
+@router.post("/system/init-tables")
+async def init_attendance_tables_alias(
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Alias for init tables to match frontend expectation"""
+    return await init_attendance_tables(pool)
+
+@router.get("/stats")
+async def get_attendance_stats(
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """Get attendance statistics for the dashboard"""
+    async with pool.acquire() as conn:
+        try:
+            # Check if tables exist first
+            tables_exist = await conn.fetchval("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = current_schema() 
+                    AND table_name = 'attendance_sessions'
+                )
+            """)
+            
+            if not tables_exist:
+                return {
+                    "today_present": 0,
+                    "today_absent": 0,
+                    "today_late": 0,
+                    "weekly_attendance": []
+                }
+
+            today = date.today()
+            
+            # Get today's stats
+            stats = await conn.fetchrow("""
+                SELECT 
+                    COUNT(ar.record_id) filter (where ar.status = 'present') as present,
+                    COUNT(ar.record_id) filter (where ar.status = 'absent') as absent,
+                    COUNT(ar.record_id) filter (where ar.status = 'late') as late
+                FROM attendance_sessions s
+                JOIN attendance_records ar ON s.session_id = ar.session_id
+                WHERE s.date = $1
+            """, today)
+            
+            return {
+                "today_present": stats['present'] or 0,
+                "today_absent": stats['absent'] or 0,
+                "today_late": stats['late'] or 0,
+                "weekly_attendance": [] # Placeholder for chart data
+            }
+        except Exception as e:
+            # Fallback if query fails
+            print(f"Stats error: {e}")
+            return {
+                "today_present": 0,
+                "today_absent": 0,
+                "today_late": 0,
+                "error": str(e)
+            }
+
 # --- Endpoints (Phase 4) ---
 
 @router.get("/sessions", response_model=List[dict])

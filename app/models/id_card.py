@@ -224,13 +224,13 @@ class TemplateResponse(BaseModel):
     """Template response model"""
     template_id: UUID
     template_name: str
-    layout_json: Dict[str, Any]
+    layout_json: Dict[str, Any] = {}
     front_image_url: Optional[str] = None
     back_image_url: Optional[str] = None
-    is_default: bool
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
+    is_default: bool = False
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
