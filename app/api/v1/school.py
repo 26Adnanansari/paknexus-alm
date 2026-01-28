@@ -42,29 +42,53 @@ async def get_school_stats(
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)  # Use Tenant DB Pool
 ):
     """Get dashboard statistics (Student count, Teacher count, Storage usage)."""
-    
-    async with pool.acquire() as conn:
-        # Count Students (from tenant 'students' table)
-        student_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM students WHERE status = 'active'"
-        )
-        
-        # Count Teachers (from tenant 'staff' table)
-        teacher_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM staff WHERE role = 'teacher' AND is_active = TRUE"
-        )
-        
-        # Storage usage (Mock for now or calculate from uploads if we track them)
-        storage_used_mb = 120 # Mock
-        
-    return {
-        "students": student_count,
-        "teachers": teacher_count,
-        "storage_mb": storage_used_mb,
-        "student_limit": 500, 
-        "teacher_limit": 50,
-        "storage_limit_mb": 1024
-    }
+    try:
+        async with pool.acquire() as conn:
+            # Check if students table exists
+            exists = await conn.fetchval("SELECT to_regclass('students')")
+            if not exists:
+                return {
+                    "students": 0,
+                    "teachers": 0,
+                    "storage_mb": 0,
+                    "student_limit": 500,
+                    "teacher_limit": 50,
+                    "storage_limit_mb": 1024
+                }
+
+            # Count Students (from tenant 'students' table)
+            student_count = await conn.fetchval(
+                "SELECT COUNT(*) FROM students WHERE status = 'active'"
+            )
+            
+            # Count Teachers (from tenant 'staff' table)
+            teacher_count = await conn.fetchval(
+                "SELECT COUNT(*) FROM staff WHERE role = 'teacher' AND is_active = TRUE"
+            )
+            
+            # Storage usage (Mock for now or calculate from uploads if we track them)
+            storage_used_mb = 120 # Mock
+            
+        return {
+            "students": student_count,
+            "teachers": teacher_count,
+            "storage_mb": storage_used_mb,
+            "student_limit": 500, 
+            "teacher_limit": 50,
+            "storage_limit_mb": 1024
+        }
+    except Exception as e:
+        print(f"School Stats Error: {e}")
+        # Return fallback stats instead of 500 to prevent frontend crash
+        return {
+            "students": 0,
+            "teachers": 0,
+            "storage_mb": 0,
+            "student_limit": 500,
+            "teacher_limit": 50,
+            "storage_limit_mb": 1024,
+            "error": str(e)
+        }
 
 @router.patch("/branding", response_model=dict)
 async def update_branding(

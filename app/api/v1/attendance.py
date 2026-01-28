@@ -46,42 +46,50 @@ class SessionResponse(BaseModel):
 async def init_attendance_tables(
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    async with pool.acquire() as conn:
-        # 1. Sessions: A specific class, period, and date instance
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS attendance_sessions (
-                session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                class_id UUID NOT NULL, -- FK classes
-                period_id UUID NOT NULL, -- FK school_periods
-                date DATE NOT NULL,
-                subject_id UUID,
-                teacher_id UUID,
-                marked_by UUID, -- User ID
-                status VARCHAR(20) DEFAULT 'submitted', -- submitted, draft
-                created_at TIMESTAMPTZ DEFAULT NOW(),
-                updated_at TIMESTAMPTZ DEFAULT NOW(),
-                UNIQUE(class_id, period_id, date)
-            );
+    try:
+        async with pool.acquire() as conn:
+            # Ensure UUID generation is available
+            await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
             
-            CREATE INDEX IF NOT EXISTS idx_sess_date ON attendance_sessions(date);
-            CREATE INDEX IF NOT EXISTS idx_sess_class ON attendance_sessions(class_id);
-        """)
+            # 1. Sessions: A specific class, period, and date instance
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS attendance_sessions (
+                    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    class_id UUID NOT NULL, -- FK classes
+                    period_id UUID NOT NULL, -- FK school_periods
+                    date DATE NOT NULL,
+                    subject_id UUID,
+                    teacher_id UUID,
+                    marked_by UUID, -- User ID
+                    status VARCHAR(20) DEFAULT 'submitted', -- submitted, draft
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW(),
+                    UNIQUE(class_id, period_id, date)
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_sess_date ON attendance_sessions(date);
+                CREATE INDEX IF NOT EXISTS idx_sess_class ON attendance_sessions(class_id);
+            """)
 
-        # 2. Records: Individual student status for a session
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS attendance_records (
-                record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                session_id UUID NOT NULL REFERENCES attendance_sessions(session_id) ON DELETE CASCADE,
-                student_id UUID NOT NULL, -- FK students
-                status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'late', 'excused')),
-                remarks TEXT,
-                marked_at TIMESTAMPTZ DEFAULT NOW(),
-                UNIQUE(session_id, student_id)
-            );
-            
-            CREATE INDEX IF NOT EXISTS idx_rec_student ON attendance_records(student_id);
-        """)
-        return {"message": "Attendance tables initialized"}
+            # 2. Records: Individual student status for a session
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS attendance_records (
+                    record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    session_id UUID NOT NULL REFERENCES attendance_sessions(session_id) ON DELETE CASCADE,
+                    student_id UUID NOT NULL, -- FK students
+                    status VARCHAR(20) NOT NULL CHECK (status IN ('present', 'absent', 'late', 'excused')),
+                    remarks TEXT,
+                    marked_at TIMESTAMPTZ DEFAULT NOW(),
+                    UNIQUE(session_id, student_id)
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_rec_student ON attendance_records(student_id);
+            """)
+            return {"message": "Attendance tables initialized"}
+    except Exception as e:
+        print(f"Attendance Init Error: {e}")
+        # Return 500 but with detail
+        raise HTTPException(status_code=500, detail=f"Failed to init attendance tables: {str(e)}")
 
 @router.post("/system/init-tables")
 async def init_attendance_tables_alias(
