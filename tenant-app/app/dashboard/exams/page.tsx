@@ -3,29 +3,27 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    GraduationCap, Plus, Calendar, ChevronRight,
-    BookOpen, CheckCircle, Clock, AlertCircle
+    Calendar, Plus, ChevronRight, FileText, ClipboardList, CheckCircle
 } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Exam {
     exam_id: string;
     name: string;
     start_date: string;
     end_date: string;
-    description?: string;
+    description: string;
     is_active: boolean;
 }
 
-export default function ExamsListPage() {
-    const router = useRouter();
+export default function ExamsPage() {
     const [exams, setExams] = useState<Exam[]>([]);
     const [loading, setLoading] = useState(true);
-    const [modalOpen, setModalOpen] = useState(false);
+    const [isAddOpen, setIsAddOpen] = useState(false);
 
-    // Form
+    // Add Exam Form State
     const [formData, setFormData] = useState({
         name: '',
         start_date: '',
@@ -42,189 +40,143 @@ export default function ExamsListPage() {
         try {
             const res = await api.get('/exams');
             setExams(res.data);
-        } catch (error) {
-            toast.error('Failed to load exams');
-        } finally {
-            setLoading(false);
-        }
+        } catch (e) { toast.error('Failed to load exams'); }
+        finally { setLoading(false); }
     };
 
     const handleCreate = async () => {
-        if (!formData.name || !formData.start_date || !formData.end_date) {
-            toast.error('Please fill required fields');
-            return;
-        }
+        if (!formData.name || !formData.start_date || !formData.end_date) return toast.error('Fill required fields');
         try {
             await api.post('/exams', formData);
-            toast.success('Exam created successfully');
-            setModalOpen(false);
-            setFormData({ name: '', start_date: '', end_date: '', description: '' });
+            toast.success('Exam Created');
+            setIsAddOpen(false);
             fetchExams();
-        } catch (error) {
-            toast.error('Failed to create exam');
-        }
+        } catch (e) { toast.error('Failed to create exam'); }
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6 md:p-10 pb-24">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+            <div className="max-w-6xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                            <GraduationCap className="text-blue-600" size={32} />
+                            <ClipboardList className="text-purple-600" size={32} />
                             Examinations
                         </h1>
-                        <p className="text-slate-500 font-medium mt-1">Manage exam terms, schedules, and result cards</p>
+                        <p className="text-slate-500 font-medium mt-1">Manage exam schedules, papers, and results</p>
                     </div>
                     <button
-                        onClick={() => setModalOpen(true)}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
+                        onClick={() => setIsAddOpen(true)}
+                        className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-200"
                     >
                         <Plus size={20} />
-                        New Exam Term
+                        New Exam
                     </button>
                 </div>
 
-                {/* Grid */}
                 {loading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
-                    </div>
+                    <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full" /></div>
                 ) : exams.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-                        <div className="bg-slate-50 p-6 rounded-full mb-4">
-                            <GraduationCap className="text-slate-400 w-12 h-12" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900">No Exams Found</h3>
-                        <p className="text-slate-500 mt-2">Create your first exam term to get started.</p>
+                    <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed">
+                        <FileText className="mx-auto text-slate-300 mb-4" size={48} />
+                        <h3 className="text-xl font-bold text-slate-400">No exams found</h3>
+                        <p className="text-slate-400 text-sm">Create your first exam to get started</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {exams.map(exam => {
-                            // Determine status
-                            const now = new Date();
-                            const start = new Date(exam.start_date);
-                            const end = new Date(exam.end_date);
-                            let status = 'Upcoming';
-                            let color = 'bg-blue-100 text-blue-700';
-
-                            if (now >= start && now <= end) {
-                                status = 'Ongoing';
-                                color = 'bg-green-100 text-green-700';
-                            } else if (now > end) {
-                                status = 'Completed';
-                                color = 'bg-slate-100 text-slate-600';
-                            }
-
-                            return (
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {exams.map((exam, i) => (
+                            <Link href={`/dashboard/exams/${exam.exam_id}`} key={exam.exam_id}>
                                 <motion.div
-                                    key={exam.exam_id}
-                                    whileHover={{ y: -4 }}
-                                    onClick={() => router.push(`/dashboard/exams/${exam.exam_id}`)}
-                                    className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-purple-200 transition-all group cursor-pointer h-full"
                                 >
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${color}`}>
-                                            {status}
+                                        <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                            <Calendar size={24} />
                                         </div>
-                                        {status === 'Ongoing' && (
-                                            <span className="relative flex h-3 w-3">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                        {exam.is_active && (
+                                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-lg text-xs font-bold uppercase flex items-center gap-1">
+                                                <CheckCircle size={10} /> Active
                                             </span>
                                         )}
                                     </div>
 
-                                    <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors">
-                                        {exam.name}
-                                    </h3>
+                                    <h3 className="text-xl font-bold text-slate-900 mb-2">{exam.name}</h3>
+                                    <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">{exam.description || 'No description provided'}</p>
 
-                                    <div className="space-y-2 text-sm text-slate-500 mb-6">
-                                        <div className="flex items-center gap-2">
-                                            <Calendar size={16} />
-                                            <span>{new Date(exam.start_date).toLocaleDateString()} - {new Date(exam.end_date).toLocaleDateString()}</span>
+                                    <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3 text-xs font-bold text-slate-500">
+                                        <div className="flex-1 text-center border-r border-slate-200">
+                                            <span className="block text-slate-400 uppercase text-[10px] mb-1">Starts</span>
+                                            {new Date(exam.start_date).toLocaleDateString()}
                                         </div>
-                                        {exam.description && (
-                                            <p className="line-clamp-2 text-slate-400 text-xs">{exam.description}</p>
-                                        )}
+                                        <div className="flex-1 text-center">
+                                            <span className="block text-slate-400 uppercase text-[10px] mb-1">Ends</span>
+                                            {new Date(exam.end_date).toLocaleDateString()}
+                                        </div>
                                     </div>
 
-                                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-blue-600 font-bold text-sm">
-                                        <span>View Schedules</span>
-                                        <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end text-purple-600 text-sm font-bold group-hover:translate-x-1 transition-transform">
+                                        Manage Papers & Marks <ChevronRight size={16} />
                                     </div>
                                 </motion.div>
-                            );
-                        })}
+                            </Link>
+                        ))}
                     </div>
                 )}
             </div>
 
-            {/* Create Modal */}
+            {/* Add Modal */}
             <AnimatePresence>
-                {modalOpen && (
+                {isAddOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-lg"
-                        >
-                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Create New Exam</h2>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
+                            <h2 className="text-2xl font-bold mb-6">Create New Exam</h2>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Exam Name</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase">Exam Name</label>
                                     <input
-                                        type="text"
+                                        placeholder="e.g. Final Term 2026"
+                                        className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none"
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="e.g. Mid-Term 2026"
-                                        className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none font-bold"
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Start Date</label>
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold text-slate-400 uppercase">Start Date</label>
                                         <input
                                             type="date"
+                                            className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none"
                                             value={formData.start_date}
                                             onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                                            className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">End Date</label>
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold text-slate-400 uppercase">End Date</label>
                                         <input
                                             type="date"
+                                            className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none"
                                             value={formData.end_date}
                                             onChange={e => setFormData({ ...formData, end_date: e.target.value })}
-                                            className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">Description (Optional)</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase">Description</label>
                                     <textarea
+                                        placeholder="Optional notes..."
+                                        className="w-full p-3 bg-slate-50 border rounded-xl font-bold outline-none h-24"
                                         value={formData.description}
                                         onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                        className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none h-24 resize-none"
                                     />
                                 </div>
                             </div>
-                            <div className="flex gap-3 mt-8">
-                                <button
-                                    onClick={() => setModalOpen(false)}
-                                    className="flex-1 py-3 font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleCreate}
-                                    className="flex-1 py-3 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-500/30"
-                                >
-                                    Create Exam
-                                </button>
+                            <div className="flex gap-3 mt-6">
+                                <button onClick={() => setIsAddOpen(false)} className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl">Cancel</button>
+                                <button onClick={handleCreate} className="flex-1 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700">Create Exam</button>
                             </div>
                         </motion.div>
                     </div>
