@@ -128,7 +128,7 @@ app.include_router(biometrics.router, prefix=f"{settings.API_V1_STR}/biometrics"
 from app.api.v1 import refunds
 app.include_router(refunds.router, prefix=f"{settings.API_V1_STR}/refunds", tags=["refunds"])
 
-from app.api.v1 import moments, nexus, karma, fees, id_cards, admissions
+from app.api.v1 import moments, nexus, karma, fees, id_cards, admissions, timetable
 app.include_router(moments.router, prefix=f"{settings.API_V1_STR}/moments", tags=["moments"])
 app.include_router(nexus.router, prefix=f"{settings.API_V1_STR}/nexus", tags=["nexus"])
 app.include_router(karma.router, prefix=f"{settings.API_V1_STR}/karma", tags=["karma"])
@@ -136,4 +136,5 @@ app.include_router(fees.router, prefix=f"{settings.API_V1_STR}/fees", tags=["fee
 app.include_router(id_cards.router, prefix=f"{settings.API_V1_STR}")
 app.include_router(admissions.router, prefix=f"{settings.API_V1_STR}/admissions", tags=["admissions"])
 app.include_router(admissions.public_router, prefix=f"{settings.API_V1_STR}/public/admissions", tags=["public-admissions"])
+app.include_router(timetable.router, prefix=f"{settings.API_V1_STR}/timetable", tags=["timetable"])
 
