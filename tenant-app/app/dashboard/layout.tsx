@@ -50,7 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const navItems = [
         { icon: TrendingUp, label: "Overview", path: "/dashboard" },
         { icon: Users, label: "Students", path: "/dashboard/students" },
-        { icon: GraduationCap, label: "Teachers", path: "/dashboard/teachers" },
+        { icon: Users, label: "Staff", path: "/dashboard/teachers" },
         { icon: DollarSign, label: "Fees", path: "/dashboard/fees" },
         { icon: CreditCard, label: "ID Cards", path: "/dashboard/id-cards" },
         { icon: Calendar, label: "Attendance", path: "/dashboard/attendance" },

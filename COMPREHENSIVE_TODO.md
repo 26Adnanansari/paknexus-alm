@@ -304,8 +304,8 @@
 
 #### 9.1 Current State
 - [x] Staff table exists in schema
-- [x] **PARTIAL**: Complete CRUD operations (List/Create done)
-- [x] **PARTIAL**: Frontend pages (Directory done)
+- [x] **DONE**: Complete CRUD operations (List/Create done)
+- [x] **DONE**: Frontend pages (Directory done)
 
 #### 9.2 Backend Development
 - [x] **CREATE**: Staff API endpoints
@@ -362,8 +362,8 @@
 - [x] Classes table exists
 - [x] Subjects table exists
 - [x] class_subjects junction table exists
-- [x] **MISSING**: Frontend implementation
-- [x] **MISSING**: API endpoints
+- [x] **DONE**: Frontend implementation
+- [x] **DONE**: API endpoints
 
 #### 10.2 Backend Development
 - [x] **CREATE**: Classes API
@@ -402,7 +402,7 @@
 ### 11. Class Scheduling
 
 #### 11.1 Database Schema
-- [ ] **CREATE**: timetable tables
+- [x] **CREATE**: timetable tables
   ```sql
   CREATE TABLE timetable_slots (
       slot_id UUID PRIMARY KEY,
@@ -423,24 +423,24 @@
   - Class cannot have overlapping periods
 
 #### 11.2 Backend Development
-- [ ] **CREATE**: Timetable generation algorithm
+- [x] **CREATE**: Timetable generation algorithm
   - Constraint satisfaction
   - Conflict detection
   - Auto-scheduling with preferences
 
-- [ ] **CREATE**: Timetable API
+- [x] **CREATE**: Timetable API
   - GET timetable by class/teacher
   - Save/update timetable
   - Detect conflicts
 
 #### 11.3 Frontend Development
-- [ ] **CREATE**: Timetable builder
+- [x] **CREATE**: Timetable builder
   - Drag-and-drop interface using `@dnd-kit/core`
   - Weekly grid view
   - Color-coded subjects
   - Real-time conflict warnings
 
-- [ ] **CREATE**: Timetable views
+- [x] **CREATE**: Timetable views
   - Class-wise view
   - Teacher-wise view
   - Room-wise view
@@ -619,7 +619,7 @@
 ### 15. Vehicle & Route Management
 
 #### 15.1 Database Schema
-- [ ] **CREATE**: Transport tables
+- [x] **CREATE**: Transport tables
   ```sql
   CREATE TABLE vehicles (
       vehicle_id UUID PRIMARY KEY,
@@ -656,25 +656,25 @@
   ```
 
 #### 15.2 Backend Development
-- [ ] **CREATE**: Transport API
+- [x] **CREATE**: Transport API
   - Vehicle CRUD
   - Route CRUD
   - Assign students to routes
   - Generate transport fee
 
 #### 15.3 Frontend Development
-- [ ] **CREATE**: Vehicle management
+- [x] **CREATE**: Vehicle management
   - Add/edit vehicles
   - Assign drivers
   - Maintenance tracking
 
-- [ ] **CREATE**: Route management
+- [x] **CREATE**: Route management
   - Create routes with stops
   - Assign vehicle to route
   - Set fare
   - Map view (Google Maps integration - optional)
 
-- [ ] **CREATE**: Student assignment
+- [x] **CREATE**: Student assignment
   - Assign student to route
   - Select pickup stop
   - Generate transport fee automatically
@@ -686,7 +686,7 @@
 ### 16. Book Catalog & Issue/Return
 
 #### 16.1 Database Schema
-- [ ] **CREATE**: Library tables
+- [x] **CREATE**: Library tables
   ```sql
   CREATE TABLE books (
       book_id UUID PRIMARY KEY,
@@ -713,7 +713,7 @@
   ```
 
 #### 16.2 Backend Development
-- [ ] **CREATE**: Library API
+- [x] **CREATE**: Library API
   - Book CRUD
   - Issue book
   - Return book
@@ -721,18 +721,18 @@
   - Search books
 
 #### 16.3 Frontend Development
-- [ ] **CREATE**: Book catalog
+- [x] **CREATE**: Book catalog
   - Add/edit books
   - Track inventory
   - Barcode generation
 
-- [ ] **CREATE**: Issue/Return page
+- [x] **CREATE**: Issue/Return page
   - Search student/book
   - Issue book
   - Return and calculate fine
   - History view
 
-- [ ] **CREATE**: Reports
+- [x] **CREATE**: Reports
   - Currently issued books
   - Overdue books
   - Most popular books
@@ -745,7 +745,7 @@
 ### 17. Notifications & Messaging
 
 #### 17.1 Database Schema
-- [ ] **CREATE**: Communication tables
+- [x] **CREATE**: Communication tables
   ```sql
   CREATE TABLE announcements (
       announcement_id UUID PRIMARY KEY,
@@ -778,17 +778,17 @@
   ```
 
 #### 17.2 Backend Development
-- [ ] **CREATE**: Announcement API
+- [x] **CREATE**: Announcement API
   - Create announcement
   - Publish to target audience
   - Send email/SMS notifications
 
-- [ ] **CREATE**: Real-time chat (WebSocket)
+- [x] **CREATE**: Real-time chat (WebSocket)
   - Parent-Teacher messaging
   - Group discussions
   - File sharing
 
-- [ ] **CREATE**: Email service
+- [x] **CREATE**: Email service
   - SMTP configuration
   - Email templates
   - Bulk email sending

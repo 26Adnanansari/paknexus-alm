@@ -49,7 +49,10 @@ async def init_attendance_tables(
     try:
         async with pool.acquire() as conn:
             # Ensure UUID generation is available
-            await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
+            try:
+                await conn.execute('CREATE EXTENSION IF NOT EXISTS "pgcrypto";')
+            except Exception:
+                pass # Ignore if permission denied or already exists properly
             
             # 1. Sessions: A specific class, period, and date instance
             await conn.execute("""

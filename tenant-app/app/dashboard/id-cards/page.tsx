@@ -51,6 +51,7 @@ export default function IDCardUnifiedDashboard() {
     const [previewStudent, setPreviewStudent] = useState<Student | null>(null);
     const [flipPreview, setFlipPreview] = useState(false);
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+    const [mobileTab, setMobileTab] = useState<'students' | 'preview'>('students');
 
     useEffect(() => {
         fetchTemplates();
@@ -196,10 +197,26 @@ export default function IDCardUnifiedDashboard() {
     // --- Render Helpers ---
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <div className="flex flex-col lg:flex-row h-screen bg-slate-50 overflow-hidden">
+
+            {/* MOBILE TABS (Visible only on small screens) */}
+            <div className="lg:hidden flex border-b border-slate-200 bg-white">
+                <button
+                    onClick={() => setMobileTab('students')}
+                    className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${mobileTab === 'students' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-500'}`}
+                >
+                    <User size={16} /> Students
+                </button>
+                <button
+                    onClick={() => setMobileTab('preview')}
+                    className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 ${mobileTab === 'preview' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-slate-500'}`}
+                >
+                    <CreditCard size={16} /> Preview
+                </button>
+            </div>
 
             {/* LEFT SIDEBAR: CONTENT (Student Selection) */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className={`${mobileTab === 'students' ? 'flex' : 'hidden'} lg:flex flex-1 flex-col h-full overflow-hidden`}>
 
                 {/* Header Phase */}
                 <div className="bg-white p-6 border-b border-slate-200 shadow-sm z-20">
@@ -356,8 +373,8 @@ export default function IDCardUnifiedDashboard() {
                 </div>
             </div>
 
-            {/* RIGHT SIDEBAR: PREVIEW (Fixed Width) */}
-            <div className="w-[380px] bg-slate-900 text-white flex flex-col items-center p-6 border-l border-slate-800 shadow-2xl z-30">
+            {/* RIGHT SIDEBAR: PREVIEW (Fixed Width on Desktop, Full on Mobile) */}
+            <div className={`${mobileTab === 'preview' ? 'flex' : 'hidden'} lg:flex w-full lg:w-[380px] bg-slate-900 text-white flex-col items-center p-6 border-l border-slate-800 shadow-2xl z-30`}>
                 <div className="w-full flex justify-between items-center mb-8">
                     <h3 className="font-bold text-lg text-slate-300">Live Preview</h3>
                     <div className="flex gap-2">
@@ -457,18 +474,7 @@ export default function IDCardUnifiedDashboard() {
                     </motion.div>
                 </div>
 
-                <div className="w-full bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                    <p className="text-xs text-slate-400 mb-2 font-bold uppercase tracking-wider">Preview Data Source</p>
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-700 overflow-hidden">
-                            {previewStudent?.photo_url ? <img src={previewStudent.photo_url} className="w-full h-full object-cover" /> : null}
-                        </div>
-                        <div className="overflow-hidden">
-                            <p className="text-sm font-bold text-white truncate">{previewStudent?.full_name || 'Select a student'}</p>
-                            <p className="text-[10px] text-slate-400 truncate font-mono">{previewStudent?.student_id || 'ID: ---'}</p>
-                        </div>
-                    </div>
-                </div>
+                {/* Debug section removed */}
 
             </div>
         </div>
