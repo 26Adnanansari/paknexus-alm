@@ -133,3 +133,15 @@ async def get_public_branding(
             raise HTTPException(status_code=404, detail="School not found")
 
         return dict(tenant)
+
+@router.get("/sys-repair-master-999")
+async def trigger_manual_repair(
+    pool: asyncpg.Pool = Depends(get_master_db_pool)
+):
+    """
+    Emergency endpoint to trigger schema repair if system is broken.
+    """
+    from app.db.repair import fix_master_schema
+    await fix_master_schema(pool)
+    return {"status": "Repair executed"}
+

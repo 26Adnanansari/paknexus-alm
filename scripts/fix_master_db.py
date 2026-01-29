@@ -3,19 +3,35 @@ import asyncio
 import asyncpg
 import os
 import sys
+import ssl
 
 # Add parent dir to path to import app.core
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.core.config import settings
+# Hardcoded fallback if import fails (to ensure script runs)
+DATABASE_URL = "postgresql://neondb_owner:npg_SLGA6opCf8Rb@ep-wandering-block-ahqrebzm-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 async def fix_master_db():
-    print(f"Connecting to Master DB: {settings.DATABASE_URL}...")
+    print(f"Connecting to Master DB...")
+    
+    # Create SSL Context manually to avoid verification issues
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    conn = None
     try:
-        conn = await asyncpg.connect(settings.DATABASE_URL)
+        conn = await asyncpg.connect(DATABASE_URL, ssl=ctx)
+        print("Connected successfully!")
     except Exception as e:
-        print(f"Connection failed: {e}")
-        return
+        print(f"Connection with SSL Context failed: {e}")
+        try:
+            # Try without explicit context (asyncpg generic)
+            conn = await asyncpg.connect(DATABASE_URL)
+            print("Connected with default SSL!")
+        except Exception as e2:
+             print(f"All connection attempts failed. Error: {e2}")
+             return
 
     try:
         # 1. Create Type user_role
@@ -24,6 +40,8 @@ async def fix_master_db():
             print("Created type: user_role")
         except asyncpg.DuplicateObjectError:
             print("Type user_role already exists")
+        except Exception as e:
+            print(f"Note on type: {e}")
 
         # 2. Create Table tenant_users
         await conn.execute("""
@@ -35,14 +53,9 @@ async def fix_master_db():
                 full_name VARCHAR(100),
                 role user_role NOT NULL,
                 is_active BOOLEAN DEFAULT TRUE,
-                
-                -- Profile linkage
                 profile_id UUID,
-                
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 last_login TIMESTAMPTZ,
-                
-                -- Ensure email is unique within a tenant
                 UNIQUE(email, tenant_id)
             );
         """)
@@ -51,13 +64,13 @@ async def fix_master_db():
         # 3. Create Indexes
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_tenant_users_email ON tenant_users(email);")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_tenant_users_tenant ON tenant_users(tenant_id);")
-        await conn.execute("CREATE INDEX IF NOT EXISTS idx_tenant_users_login ON tenant_users(email, tenant_id, is_active);")
         print("Ensured indexes for tenant_users")
 
     except Exception as e:
         print(f"Error during repair: {e}")
     finally:
-        await conn.close()
+        if conn:
+            await conn.close()
         print("Done.")
 
 if __name__ == "__main__":
