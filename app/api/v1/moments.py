@@ -23,6 +23,19 @@ async def create_moment(
         raise HTTPException(status_code=400, detail="Tenant context required")
 
     async with pool.acquire() as conn:
+        # Smart Init: Ensure table exists
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS order_moments (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id UUID NOT NULL,
+                order_id UUID NOT NULL,
+                image_url TEXT NOT NULL,
+                caption TEXT,
+                status VARCHAR(20) DEFAULT 'published',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
         # Check if one already exists for this order if order_id is provided
         if moment.order_id:
             existing = await conn.fetchval(

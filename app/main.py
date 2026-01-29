@@ -23,6 +23,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting application...")
     pool = await get_master_db_pool()
     app.state.db_pool = pool
+    
+    # Self-Healing: Repair Master Schema if needed
+    from app.db.repair import fix_master_schema
+    await fix_master_schema(pool)
+    
     logger.info("Application started successfully")
     
     yield

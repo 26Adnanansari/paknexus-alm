@@ -223,6 +223,7 @@ async def create_student(
             try:
                 await conn.execute("ALTER TABLE students ADD COLUMN IF NOT EXISTS email VARCHAR(100)")
                 await conn.execute("ALTER TABLE students ADD COLUMN IF NOT EXISTS address TEXT")
+                await conn.execute("ALTER TABLE students ADD COLUMN IF NOT EXISTS photo_url TEXT")
                 await conn.execute("ALTER TABLE students ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'")
             except Exception:
                 pass
