@@ -43,11 +43,18 @@ async def get_student(
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
     """Get a single student details."""
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT * FROM students WHERE student_id = $1", student_id)
-        if not row:
-            raise HTTPException(status_code=404, detail="Student not found")
-        return dict(row)
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT * FROM students WHERE student_id = $1", student_id)
+            if not row:
+                raise HTTPException(status_code=404, detail="Student not found")
+            return dict(row)
+    except asyncpg.UndefinedTableError:
+         raise HTTPException(status_code=404, detail="Student table not initialized")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching student: {str(e)}")
 
 @router.get("/{student_id}/documents", response_model=List[dict])
 async def list_student_documents(
@@ -112,11 +119,18 @@ async def delete_student_document(
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
     """Delete a student document."""
-    async with pool.acquire() as conn:
-        result = await conn.execute("DELETE FROM student_documents WHERE document_id = $1 AND student_id = $2", document_id, student_id)
-        if result == "DELETE 0":
-            raise HTTPException(status_code=404, detail="Document not found")
-        return {"message": "Document deleted"}
+    try:
+        async with pool.acquire() as conn:
+            result = await conn.execute("DELETE FROM student_documents WHERE document_id = $1 AND student_id = $2", document_id, student_id)
+            if result == "DELETE 0":
+                raise HTTPException(status_code=404, detail="Document not found")
+            return {"message": "Document deleted"}
+    except asyncpg.UndefinedTableError:
+         raise HTTPException(status_code=404, detail="Document table not initialized")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete document: {str(e)}")
 
 @router.get("/next-id")
 async def get_next_admission_number(
@@ -288,6 +302,8 @@ async def update_student(
                 student.photo_url, student.email, student.address, student_id
             )
             return dict(row)
+    except asyncpg.UndefinedTableError:
+         raise HTTPException(status_code=404, detail="Student table not initialized")
     except HTTPException:
         raise
     except Exception as e:
@@ -310,6 +326,8 @@ async def delete_student(
             # Soft delete
             await conn.execute("UPDATE students SET status = 'inactive' WHERE student_id = $1", student_id)
             return {"message": "Student deleted successfully"}
+    except asyncpg.UndefinedTableError:
+         raise HTTPException(status_code=404, detail="Student table not initialized")
     except HTTPException:
         raise
     except Exception as e:

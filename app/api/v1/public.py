@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.database import get_master_db_pool
 from app.core.security import SecurityService
+from app.db.tenant_init import init_tenant_schema
 import asyncpg
 from pydantic import BaseModel, EmailStr, Field
 import re
+import os
 
 router = APIRouter()
 
@@ -26,11 +28,18 @@ async def register_tenant(
 ):
     """
     Public endpoint for Schools to register for a trial.
-    Creates a tenant record (Trial) and a Tenant Admin user.
+    Creates a tenant record (Trial), initializes their schema, and creates a Tenant Admin user.
     """
     # Validate subdomain format
     if not re.match("^[a-z0-9-]+$", data.subdomain):
         raise HTTPException(status_code=400, detail="Subdomain must contain only lowercase letters, numbers, and hyphens")
+
+    # Get Master DB URL for the tenant (shared DB model)
+    # We use the same DB URL as the master for now
+    master_db_url = os.getenv("MASTER_DATABASE_URL") or os.getenv("DATABASE_URL")
+    if not master_db_url:
+         # Fallback or error, but let's assume it exists
+         pass 
 
     async with pool.acquire() as conn:
         await conn.execute("SET search_path TO public")
@@ -39,30 +48,30 @@ async def register_tenant(
         if exists:
             raise HTTPException(status_code=400, detail="Subdomain already taken")
         
-        # Check if email exists (globally unique for simplicity, though schema allows per-tenant)
-        # For a new signup, we generally want fresh emails or explicit linking.
-        # Let's check if this email is already a 'tenant_users' admin for ANY tenant.
         exists_email = await conn.fetchval("SELECT 1 FROM tenant_users WHERE email = $1", data.admin_email)
         if exists_email:
-             # In a real app we might allow multi-tenant users, but for now simplify.
-             # Or just allow it? If we allow it, they will have multiple entries in tenant_users.
-             # Let's allow it but warn or handle. For now, strict:
              pass 
-             # Actually, let's NOT block email reuse across tenants, but for the *same* tenant it's blocked by DB constraint.
         
         try:
             async with conn.transaction():
                 # 1. Create Tenant (Trial)
-                # We use a placeholder for supabase credentials since we are in a shared DB or unprovisioned state
+                # Added supabase_url to ensure deps.py can connect
                 tenant_id = await conn.fetchval("""
                     INSERT INTO tenants (
                         name, subdomain, contact_email, contact_phone, 
                         status, subscription_expiry, 
-                        supabase_project_url, supabase_service_key
+                        supabase_project_url, supabase_service_key, supabase_url
                     )
-                    VALUES ($1, $2, $3, $4, 'trial', NOW() + INTERVAL '14 days', 'pending_provision', 'pending_key')
+                    VALUES ($1, $2, $3, $4, 'trial', NOW() + INTERVAL '14 days', 'pending_provision', 'pending_key', $5)
                     RETURNING tenant_id
-                """, data.school_name, data.subdomain, data.admin_email, data.contact_phone)
+                """, data.school_name, data.subdomain, data.admin_email, data.contact_phone, master_db_url)
+                
+                # 1.5 Initialize Tenant Schema
+                schema_name = f"tenant_{str(tenant_id).replace('-', '')}"
+                await init_tenant_schema(conn, schema_name)
+                
+                # Important: Reset search path to public for tenant_users insertion
+                await conn.execute("SET search_path TO public")
 
                 # 2. Create Admin User for this Tenant
                 password_hash = SecurityService.get_password_hash(data.admin_password)
