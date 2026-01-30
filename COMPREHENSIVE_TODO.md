@@ -624,17 +624,17 @@
 - [ ] **MISSING**: Payment gateway integration
 
 #### 14.2 Backend Development
-- [ ] **CREATE**: Fee structure management
-  - Define fee types by class
-  - Set due dates
-  - Late fee calculation
-  - Discount management
+- [x] **CREATE**: Fee structure management
+  - [x] Define fee types by class
+  - [x] Set due dates
+  - [x] Late fee calculation (Partially via outstanding logic)
+  - [ ] Discount management
 
-- [ ] **CREATE**: Payment processing
-  - Record payment
-  - Generate receipt
-  - Update Outstanding balance
-  - Payment history
+- [x] **CREATE**: Payment processing
+  - [x] Record payment
+  - [x] Generate receipt
+  - [x] Update Outstanding balance
+  - [x] Payment history
 
 - [ ] **CREATE**: Payment gateway integration
   - Stripe integration (future)
@@ -643,16 +643,16 @@
   - Payment verification webhooks
 
 #### 14.3 Frontend Development
-- [ ] **CREATE**: Fee structure setup
-  - Define fees by class/category
-  - Set installment plans
-  - Configure late fees
+- [x] **CREATE**: Fee structure setup
+  - [x] Define fees by class/category
+  - [x] Set installment plans
+  - [ ] Configure late fees
 
-- [ ] **CREATE**: Fee collection page
-  - Search student
-  - View outstanding
-  - Record payment
-  - Print receipt
+- [x] **CREATE**: Fee collection page
+  - [x] Search student
+  - [x] View outstanding
+  - [x] Record payment
+  - [x] Print receipt
 
 - [ ] **CREATE**: Invoice generation
   - Generate fee invoices

@@ -327,17 +327,144 @@ async def collect_fee(
             """, new_paid, status, payment.invoice_id)
             
             # 2. Record Payment Log
-            await conn.execute("""
+            payment_id = await conn.fetchval("""
                 INSERT INTO fee_payments (
                     student_id, amount_paid, payment_date, payment_method, 
                     created_at, invoice_id, collected_by, remarks
                 )
                 VALUES ($1, $2, CURRENT_DATE, $3, NOW(), $4, $5, $6)
+                RETURNING payment_id
             """, invoice['student_id'], payment.amount, payment.method, payment.invoice_id, current_user['user_id'], payment.remarks)
             
-            return {"message": "Payment recorded successfully", "new_status": status}
+            return {
+                "message": "Payment recorded successfully", 
+                "new_status": status,
+                "payment_id": str(payment_id)
+            }
 
-# --- Outstanding Reports ---
+@router.get("/receipt/{payment_id}")
+async def get_payment_receipt(
+    payment_id: UUID,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT 
+                p.payment_id, p.payment_date, p.amount_paid, p.payment_method, p.remarks,
+                s.full_name as student_name, s.admission_number, s.current_class, s.father_name,
+                i.month_year, i.invoice_id
+            FROM fee_payments p
+            JOIN students s ON p.student_id = s.student_id
+            JOIN fee_invoices i ON p.invoice_id = i.invoice_id
+            WHERE p.payment_id = $1
+        """, payment_id)
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Receipt not found")
+            
+        return dict(row)
+
+# --- Status & Reports ---
+
+async def ensure_fee_tables(conn):
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS fee_heads (
+            head_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            head_name VARCHAR(100) NOT NULL UNIQUE,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        
+        CREATE TABLE IF NOT EXISTS class_fee_structure (
+            structure_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            class_name VARCHAR(50) NOT NULL, 
+            fee_head_id UUID REFERENCES fee_heads(head_id) ON DELETE CASCADE,
+            amount DECIMAL(10,2) NOT NULL,
+            frequency VARCHAR(20) DEFAULT 'monthly',
+            currency VARCHAR(10) DEFAULT 'PKR',
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            UNIQUE(class_name, fee_head_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS fee_invoices (
+            invoice_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            student_id UUID NOT NULL, -- soft link to students table
+            month_year VARCHAR(50) NOT NULL,
+            total_amount DECIMAL(10,2) NOT NULL,
+            scholarship_amount DECIMAL(10,2) DEFAULT 0,
+            payable_amount DECIMAL(10,2) NOT NULL,
+            paid_amount DECIMAL(10,2) DEFAULT 0,
+            due_date DATE,
+            status VARCHAR(20) DEFAULT 'unpaid', -- unpaid, partial, paid
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            UNIQUE(student_id, month_year)
+        );
+
+        CREATE TABLE IF NOT EXISTS fee_payments (
+            payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            invoice_id UUID REFERENCES fee_invoices(invoice_id),
+            student_id UUID NOT NULL,
+            amount_paid DECIMAL(10,2) NOT NULL,
+            payment_date DATE DEFAULT CURRENT_DATE,
+            payment_method VARCHAR(50),
+            remarks TEXT,
+            collected_by UUID, -- user_id
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        
+        CREATE TABLE IF NOT EXISTS student_scholarships (
+            student_id UUID PRIMARY KEY, -- One scholarship policy per student for simplicity
+            discount_percent DECIMAL(5,2) NOT NULL,
+            type VARCHAR(50), -- merit, need_based
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+    """)
+
+@router.get("/status/{student_id}")
+async def get_student_fee_status(
+    student_id: UUID, 
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    async with pool.acquire() as conn:
+        await ensure_fee_tables(conn)
+        
+        # Get Student Details
+        student = await conn.fetchrow("SELECT full_name, admission_number, current_class FROM students WHERE student_id = $1", student_id)
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+
+        # Get Fee Aggregates
+        stats = await conn.fetchrow("""
+            SELECT 
+                COALESCE(SUM(payable_amount), 0) as total_fee,
+                COALESCE(SUM(paid_amount), 0) as total_paid
+            FROM fee_invoices 
+            WHERE student_id = $1
+        """, student_id)
+        
+        total_fee = float(stats['total_fee'])
+        total_paid = float(stats['total_paid'])
+        outstanding = total_fee - total_paid
+        
+        # Get Last Payment
+        last_payment = await conn.fetchval("""
+            SELECT payment_date FROM fee_payments 
+            WHERE student_id = $1 
+            ORDER BY payment_date DESC, created_at DESC LIMIT 1
+        """, student_id)
+        
+        return {
+            "student_id": str(student_id),
+            "student_name": student['full_name'],
+            "admission_number": student['admission_number'],
+            "current_class": student['current_class'],
+            "total_fee": total_fee,
+            "total_paid": total_paid,
+            "outstanding": outstanding,
+            "last_payment_date": last_payment.isoformat() if last_payment else None,
+            "is_defaulter": outstanding > 0
+        }
 
 @router.get("/outstanding", response_model=dict)
 async def get_outstanding_fees(
@@ -346,6 +473,7 @@ async def get_outstanding_fees(
 ):
     """Get list of students with outstanding fees"""
     async with pool.acquire() as conn:
+        await ensure_fee_tables(conn) # Ensure tables exist
         query = """
             SELECT 
                 s.student_id,
@@ -377,6 +505,7 @@ async def get_outstanding_report(
 ):
     """Get outstanding fees report with statistics"""
     async with pool.acquire() as conn:
+        await ensure_fee_tables(conn) # Ensure tables exist
         query = """
             SELECT 
                 COUNT(DISTINCT student_id) as total_defaulters,

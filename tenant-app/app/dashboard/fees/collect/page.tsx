@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-    DollarSign, Search, CreditCard, Printer, Calendar, User, CheckCircle2
+    DollarSign, Search, CreditCard, Printer, Calendar, User, CheckCircle2, X
 } from 'lucide-react';
 import api from '@/lib/api';
 import { toast } from 'sonner';
+import FeeReceipt from '@/components/dashboard/fees/FeeReceipt';
 
 interface Student {
     student_id: string;
@@ -52,6 +53,10 @@ export default function FeeCollectionPage() {
     const [paymentRemarks, setPaymentRemarks] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState<string | null>(null);
 
+    // Receipt Modal
+    const [showReceipt, setShowReceipt] = useState(false);
+    const [lastPaymentId, setLastPaymentId] = useState<string | null>(null);
+
     const searchStudent = async () => {
         if (!searchTerm.trim()) {
             toast.error('Please enter admission number or name');
@@ -90,6 +95,7 @@ export default function FeeCollectionPage() {
             setFeeStatus(res.data);
         } catch (error) {
             console.error(error);
+            toast.error("Failed to fetch fee status");
         }
     };
 
@@ -114,7 +120,7 @@ export default function FeeCollectionPage() {
         }
 
         try {
-            await api.post('/fees/collect', {
+            const res = await api.post('/fees/collect', {
                 invoice_id: selectedInvoice,
                 amount: parseFloat(paymentAmount),
                 method: paymentMethod,
@@ -122,6 +128,12 @@ export default function FeeCollectionPage() {
             });
 
             toast.success('Payment recorded successfully!');
+
+            // Show Receipt
+            if (res.data.payment_id) {
+                setLastPaymentId(res.data.payment_id);
+                setShowReceipt(true);
+            }
 
             // Refresh data
             if (selectedStudent) {
@@ -216,8 +228,8 @@ export default function FeeCollectionPage() {
                         </div>
 
                         <div className={`p-6 rounded-3xl shadow-lg text-white ${feeStatus.outstanding > 0
-                                ? 'bg-gradient-to-br from-red-600 to-red-700'
-                                : 'bg-gradient-to-br from-emerald-600 to-emerald-700'
+                            ? 'bg-gradient-to-br from-red-600 to-red-700'
+                            : 'bg-gradient-to-br from-emerald-600 to-emerald-700'
                             }`}>
                             <p className={`text-sm font-bold mb-2 ${feeStatus.outstanding > 0 ? 'text-red-100' : 'text-emerald-100'}`}>
                                 Outstanding
@@ -257,8 +269,8 @@ export default function FeeCollectionPage() {
                                             setPaymentAmount((invoice.payable_amount - invoice.paid_amount).toString());
                                         }}
                                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedInvoice === invoice.invoice_id
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+                                            ? 'border-blue-500 bg-blue-50'
+                                            : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
                                             }`}
                                     >
                                         <div className="flex justify-between items-start mb-2">
@@ -267,10 +279,10 @@ export default function FeeCollectionPage() {
                                                 <p className="text-xs text-slate-500">Due: {new Date(invoice.due_date).toLocaleDateString()}</p>
                                             </div>
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${invoice.status === 'paid'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : invoice.status === 'partial'
-                                                        ? 'bg-yellow-100 text-yellow-700'
-                                                        : 'bg-red-100 text-red-700'
+                                                ? 'bg-green-100 text-green-700'
+                                                : invoice.status === 'partial'
+                                                    ? 'bg-yellow-100 text-yellow-700'
+                                                    : 'bg-red-100 text-red-700'
                                                 }`}>
                                                 {invoice.status.toUpperCase()}
                                             </span>
@@ -361,6 +373,33 @@ export default function FeeCollectionPage() {
                     </div>
                 )}
             </div>
+
+            {/* Receipt Modal */}
+            <AnimatePresence>
+                {showReceipt && lastPaymentId && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm"
+                            onClick={() => setShowReceipt(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-2xl bg-transparent"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <FeeReceipt
+                                paymentId={lastPaymentId}
+                                onClose={() => setShowReceipt(false)}
+                            />
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
