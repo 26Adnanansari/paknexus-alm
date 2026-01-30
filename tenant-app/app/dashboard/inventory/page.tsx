@@ -44,9 +44,14 @@ export default function InventoryPage() {
         type: 'in', quantity: 1, reason: ''
     });
 
+    // History
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [view, setView] = useState<'items' | 'history'>('items');
+
     useEffect(() => {
-        fetchItems();
-    }, [categoryFilter, showLowStock]);
+        if (view === 'items') fetchItems();
+        if (view === 'history') fetchTransactions();
+    }, [view, categoryFilter, showLowStock]);
 
     const fetchItems = async () => {
         setLoading(true);
@@ -58,6 +63,15 @@ export default function InventoryPage() {
             const res = await api.get('/inventory/items', { params });
             setItems(res.data);
         } catch (e) { toast.error('Failed to load items'); }
+        finally { setLoading(false); }
+    };
+
+    const fetchTransactions = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/inventory/transactions');
+            setTransactions(res.data);
+        } catch (e) { toast.error('Failed to load history'); }
         finally { setLoading(false); }
     };
 
@@ -109,55 +123,73 @@ export default function InventoryPage() {
                         </h1>
                         <p className="text-slate-500 font-medium mt-1">Track assets, stock levels, and procurement</p>
                     </div>
-                    <button
-                        onClick={() => setIsCreateOpen(true)}
-                        className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center gap-2"
-                    >
-                        <Plus size={20} />
-                        Add New Item
-                    </button>
+                    <div className="flex gap-2">
+                        <div className="bg-white p-1 rounded-xl border border-slate-200 flex">
+                            <button
+                                onClick={() => setView('items')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'items' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                Items
+                            </button>
+                            <button
+                                onClick={() => setView('history')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'history' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                History
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setIsCreateOpen(true)}
+                            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center gap-2"
+                        >
+                            <Plus size={20} />
+                            Add New Item
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters */}
-                <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col md:flex-row gap-4 items-center">
-                    <div className="relative flex-1 w-full">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input
-                            type="text"
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            placeholder="Search items..."
-                            className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl w-full outline-none"
-                        />
-                    </div>
-                    <select
-                        value={categoryFilter}
-                        onChange={e => setCategoryFilter(e.target.value)}
-                        className="p-2 bg-slate-50 border border-slate-200 rounded-xl outline-none"
-                    >
-                        <option value="">All Categories</option>
-                        <option value="Stationary">Stationary</option>
-                        <option value="Uniform">Uniform</option>
-                        <option value="Furniture">Furniture</option>
-                        <option value="Electronics">Electronics</option>
-                    </select>
-                    <button
-                        onClick={() => setShowLowStock(!showLowStock)}
-                        className={`px-4 py-2 rounded-xl font-bold border transition-colors flex items-center gap-2
+                {view === 'items' && (
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 flex flex-col md:flex-row gap-4 items-center">
+                        <div className="relative flex-1 w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Search items..."
+                                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl w-full outline-none"
+                            />
+                        </div>
+                        <select
+                            value={categoryFilter}
+                            onChange={e => setCategoryFilter(e.target.value)}
+                            className="p-2 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                        >
+                            <option value="">All Categories</option>
+                            <option value="Stationary">Stationary</option>
+                            <option value="Uniform">Uniform</option>
+                            <option value="Furniture">Furniture</option>
+                            <option value="Electronics">Electronics</option>
+                        </select>
+                        <button
+                            onClick={() => setShowLowStock(!showLowStock)}
+                            className={`px-4 py-2 rounded-xl font-bold border transition-colors flex items-center gap-2
                             ${showLowStock ? 'bg-red-50 border-red-200 text-red-600' : 'bg-white border-slate-200 text-slate-600'}
                         `}
-                    >
-                        <AlertTriangle size={16} />
-                        Low Stock
-                    </button>
-                </div>
+                        >
+                            <AlertTriangle size={16} />
+                            Low Stock
+                        </button>
+                    </div>
+                )}
 
-                {/* Grid */}
+                {/* Content */}
                 {loading ? (
                     <div className="flex justify-center py-20">
                         <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
                     </div>
-                ) : (
+                ) : view === 'items' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredItems.map(item => {
                             const isLow = item.quantity <= item.low_stock_threshold;
@@ -207,6 +239,63 @@ export default function InventoryPage() {
                                 </motion.div>
                             );
                         })}
+                        {filteredItems.length === 0 && (
+                            <div className="col-span-full py-20 text-center text-slate-400">
+                                <Package size={48} className="mx-auto mb-4 opacity-50" />
+                                <p>No items found.</p>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    // Transaction History View
+                    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase">Item</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase">Type</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase">Quantity</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase">Reason</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase">By</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {transactions.map((t) => (
+                                    <tr key={t.transaction_id} className="hover:bg-slate-50 cursor-default">
+                                        <td className="p-4 text-sm text-slate-600 font-mono">
+                                            {new Date(t.created_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="p-4 font-bold text-slate-900">{t.item_name}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase
+                                                ${t.type === 'in' ? 'bg-green-100 text-green-700' :
+                                                    t.type === 'out' ? 'bg-blue-100 text-blue-700' :
+                                                        'bg-red-100 text-red-700'}
+                                            `}>
+                                                {t.type}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 font-mono font-bold">
+                                            {t.type === 'in' ? '+' : '-'}{t.quantity} {t.unit}
+                                        </td>
+                                        <td className="p-4 text-sm text-slate-500 italic">
+                                            {t.reason || '-'}
+                                        </td>
+                                        <td className="p-4 text-sm font-medium text-slate-700">
+                                            {t.performed_by_name || 'System'}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {transactions.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="p-12 text-center text-slate-400 font-bold">
+                                            No recent transactions
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>

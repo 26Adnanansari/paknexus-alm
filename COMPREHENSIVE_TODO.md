@@ -1144,7 +1144,11 @@
 
 ### 23. Remaining Core Modules (To Be Built)
 1. **Payroll System**: Full salary slip generation, tax calculation.
-2. **Inventory/Asset Management**: Tracking school furniture, labs, devices.
+2. [x] **Inventory/Asset Management**: Tracking school furniture, labs, devices.
+   - [x] Item creation
+   - [x] Stock adjustment (In/Out)
+   - [x] Categories
+   - [x] Transaction History
 3. **Hostel/Dormitory Management**: Room allocation, mess fees.
 4. **Alumni Management**: Events, donations, history.
 5. **Front Office/Visitor Management**: Gate pass, appointments.

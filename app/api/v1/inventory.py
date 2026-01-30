@@ -141,3 +141,25 @@ async def adjust_stock(
             """, data.item_id, data.type, data.quantity, data.reason, current_user['user_id'])
             
             return {"success": True, "new_quantity": new_qty}
+
+@router.get("/transactions", response_model=List[dict])
+async def list_transactions(
+    limit: int = 50,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """List recent inventory transactions"""
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT 
+                t.*, 
+                i.name as item_name, 
+                i.unit,
+                u.full_name as performed_by_name
+            FROM inventory_transactions t
+            JOIN inventory_items i ON t.item_id = i.item_id
+            LEFT JOIN tenant_users u ON t.performed_by = u.user_id
+            ORDER BY t.created_at DESC
+            LIMIT $1
+        """, limit)
+        return [dict(row) for row in rows]
