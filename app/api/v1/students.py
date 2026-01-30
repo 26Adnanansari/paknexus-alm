@@ -36,6 +36,34 @@ class StudentDocument(BaseModel):
 
 # --- Endpoints ---
 
+@router.get("/next-id")
+async def get_next_admission_number(
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """
+    Suggest next admission number.
+    Simple logic: Count + 1. 
+    Ideally, this should parse the max number, but that requires consistent formatting.
+    """
+    async with pool.acquire() as conn:
+        try:
+            # Check if table exists
+            exists = await conn.fetchval("SELECT to_regclass('students')")
+            if not exists:
+                 year = date.today().year
+                 return {"next_id": f"S-{year}-001"}
+
+            count = await conn.fetchval("SELECT COUNT(*) FROM students")
+            # Generate ID like S-{YEAR}-{Count+1}
+            year = date.today().year
+            next_num = count + 1
+            return {"next_id": f"S-{year}-{next_num:03d}"}
+        except Exception as e:
+            # Fallback
+            import datetime
+            return {"next_id": f"S-{datetime.date.today().year}-001"}
+
 @router.get("/{student_id}", response_model=dict)
 async def get_student(
     student_id: UUID,
@@ -132,33 +160,6 @@ async def delete_student_document(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete document: {str(e)}")
 
-@router.get("/next-id")
-async def get_next_admission_number(
-    current_user: dict = Depends(get_current_school_user),
-    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
-):
-    """
-    Suggest next admission number.
-    Simple logic: Count + 1. 
-    Ideally, this should parse the max number, but that requires consistent formatting.
-    """
-    async with pool.acquire() as conn:
-        try:
-            # Check if table exists
-            exists = await conn.fetchval("SELECT to_regclass('students')")
-            if not exists:
-                 year = date.today().year
-                 return {"next_id": f"S-{year}-001"}
-
-            count = await conn.fetchval("SELECT COUNT(*) FROM students")
-            # Generate ID like S-{YEAR}-{Count+1}
-            year = date.today().year
-            next_num = count + 1
-            return {"next_id": f"S-{year}-{next_num:03d}"}
-        except Exception as e:
-            # Fallback
-            import datetime
-            return {"next_id": f"S-{datetime.date.today().year}-001"}
 
 @router.get("/", response_model=List[dict])
 async def list_students(

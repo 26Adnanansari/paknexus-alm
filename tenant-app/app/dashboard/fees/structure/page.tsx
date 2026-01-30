@@ -22,6 +22,12 @@ interface FeeStructure {
     frequency: string;
 }
 
+interface ClassItem {
+    class_id: string;
+    class_name: string;
+    section: string;
+}
+
 const COMMON_FEE_TYPES = [
     { name: 'Tuition Fee', icon: BookOpen, color: 'blue' },
     { name: 'Transport Fee', icon: Bus, color: 'green' },
@@ -33,6 +39,7 @@ const COMMON_FEE_TYPES = [
 export default function FeeStructurePage() {
     const [feeHeads, setFeeHeads] = useState<FeeHead[]>([]);
     const [structures, setStructures] = useState<FeeStructure[]>([]);
+    const [classes, setClasses] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -44,6 +51,7 @@ export default function FeeStructurePage() {
     const [showNewStructure, setShowNewStructure] = useState(false);
     const [newStructure, setNewStructure] = useState({
         class_name: '',
+        custom_class_name: '',
         fee_head_id: '',
         amount: '',
         frequency: 'monthly'
@@ -56,21 +64,31 @@ export default function FeeStructurePage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [headsRes] = await Promise.all([
-                api.get('/fees/heads')
+            const [headsRes, classesRes] = await Promise.all([
+                api.get('/fees/heads'),
+                api.get('/curriculum/classes').catch(() => ({ data: [] }))
             ]);
 
             setFeeHeads(headsRes.data);
 
+            // Extract unique class names
+            const fetchedClasses = classesRes.data.map((c: ClassItem) => c.class_name);
+            const uniqueClasses = Array.from(new Set(fetchedClasses)) as string[];
+            setClasses(uniqueClasses.length > 0 ? uniqueClasses : ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5']);
+
             // Fetch structures for all classes
             const allStructures: FeeStructure[] = [];
-            const classes = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5',
-                'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
+            // Use fetched classes, or default if empty
+            const classesToFetch = uniqueClasses.length > 0 ? uniqueClasses : ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'];
 
-            for (const cls of classes) {
+            // Parallel fetch optimization? Maybe limit concurrency?
+            // For now, sequential to avoid rate limits
+            for (const cls of classesToFetch) {
                 try {
                     const res = await api.get(`/fees/structure/${cls}`);
-                    allStructures.push(...res.data);
+                    if (res.data) {
+                        allStructures.push(...res.data);
+                    }
                 } catch (e) {
                     // Class might not have structure yet
                 }
@@ -97,31 +115,41 @@ export default function FeeStructurePage() {
             toast.success(`${name} created successfully`);
             setNewHeadName('');
             setShowNewHead(false);
-            fetchData();
+            // Partial refresh
+            const res = await api.get('/fees/heads');
+            setFeeHeads(res.data);
         } catch (error: any) {
             toast.error(error.response?.data?.detail || 'Failed to create fee head');
         }
     };
 
     const createStructure = async () => {
-        if (!newStructure.class_name || !newStructure.fee_head_id || !newStructure.amount) {
+        const targetClass = newStructure.class_name === 'other' ? newStructure.custom_class_name : newStructure.class_name;
+
+        if (!targetClass || !newStructure.fee_head_id || !newStructure.amount) {
             toast.error('Please fill all fields');
             return;
         }
 
         setLoading(true);
         try {
-            console.log('Creating structure:', newStructure);
+            console.log('Creating structure:', { ...newStructure, class_name: targetClass });
             const response = await api.post('/fees/structure', {
-                class_name: newStructure.class_name,
+                class_name: targetClass,
                 fee_head_id: newStructure.fee_head_id,
                 amount: parseFloat(newStructure.amount),
                 frequency: newStructure.frequency
             });
             console.log('Structure created:', response.data);
             toast.success('Fee structure created successfully');
-            setNewStructure({ class_name: '', fee_head_id: '', amount: '', frequency: 'monthly' });
+            setNewStructure({ class_name: '', custom_class_name: '', fee_head_id: '', amount: '', frequency: 'monthly' });
             setShowNewStructure(false);
+
+            // If new class was added, add to list
+            if (newStructure.class_name === 'other' && !classes.includes(targetClass)) {
+                setClasses(prev => [...prev, targetClass]);
+            }
+
             await fetchData();
         } catch (error: any) {
             console.error('Failed to create structure:', error);
@@ -253,7 +281,9 @@ export default function FeeStructurePage() {
                                                 try {
                                                     await api.delete(`/fees/heads/${head.head_id}`);
                                                     toast.success(`${head.head_name} deleted successfully`);
-                                                    fetchData();
+                                                    // Partial refresh
+                                                    const res = await api.get('/fees/heads');
+                                                    setFeeHeads(res.data);
                                                 } catch (error: any) {
                                                     toast.error(error.response?.data?.detail || 'Failed to delete fee head');
                                                 }
@@ -304,13 +334,20 @@ export default function FeeStructurePage() {
                             className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200"
                         >
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-                                <input
-                                    type="text"
+                                {/* Class Dropdown */}
+                                <select
                                     value={newStructure.class_name}
                                     onChange={(e) => setNewStructure({ ...newStructure, class_name: e.target.value })}
-                                    placeholder="Class Name (e.g., Class 10-A)"
-                                    className="px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none"
-                                />
+                                    className="px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none bg-white"
+                                >
+                                    <option value="">Select Class</option>
+                                    {classes.map((cls) => (
+                                        <option key={cls} value={cls}>{cls}</option>
+                                    ))}
+                                    <option value="other" className="font-bold text-blue-600">+ Add New Class</option>
+                                </select>
+
+                                {/* Fee Head Dropdown */}
                                 <select
                                     value={newStructure.fee_head_id}
                                     onChange={(e) => setNewStructure({ ...newStructure, fee_head_id: e.target.value })}
@@ -323,13 +360,22 @@ export default function FeeStructurePage() {
                                         </option>
                                     ))}
                                 </select>
-                                <input
-                                    type="number"
-                                    value={newStructure.amount}
-                                    onChange={(e) => setNewStructure({ ...newStructure, amount: e.target.value })}
-                                    placeholder="Amount (PKR)"
-                                    className="px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none"
-                                />
+
+                                {/* Amount Input with Currency */}
+                                <div className="relative">
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                                        PKR
+                                    </div>
+                                    <input
+                                        type="number"
+                                        value={newStructure.amount}
+                                        onChange={(e) => setNewStructure({ ...newStructure, amount: e.target.value })}
+                                        placeholder="Amount"
+                                        className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none"
+                                    />
+                                </div>
+
+                                {/* Frequency Dropdown */}
                                 <select
                                     value={newStructure.frequency}
                                     onChange={(e) => setNewStructure({ ...newStructure, frequency: e.target.value })}
@@ -341,6 +387,25 @@ export default function FeeStructurePage() {
                                     <option value="one-time">One-time</option>
                                 </select>
                             </div>
+
+                            {/* Custom Class Name Input (Conditional) */}
+                            {newStructure.class_name === 'other' && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    className="mb-3"
+                                >
+                                    <input
+                                        type="text"
+                                        value={newStructure.custom_class_name}
+                                        onChange={(e) => setNewStructure({ ...newStructure, custom_class_name: e.target.value })}
+                                        placeholder="Enter New Class Name (e.g., Class 11)"
+                                        className="w-full px-4 py-2.5 border-2 border-blue-200 bg-blue-50 rounded-xl focus:border-blue-500 outline-none"
+                                        autoFocus
+                                    />
+                                </motion.div>
+                            )}
+
                             <div className="flex gap-3">
                                 <button
                                     onClick={createStructure}
@@ -368,7 +433,7 @@ export default function FeeStructurePage() {
                     )}
                 </AnimatePresence>
 
-                {loading ? (
+                {loading && !showNewStructure ? (
                     <div className="text-center py-12">
                         <Loader2 className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-3" />
                         <p className="text-slate-500">Loading structures...</p>

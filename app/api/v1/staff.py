@@ -31,6 +31,33 @@ class StaffResponse(StaffCreate):
 
 # --- Endpoints ---
 
+@router.get("/next-id")
+async def get_next_employee_id(
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """
+    Suggest next employee ID.
+    Simple logic: Count + 1. 
+    """
+    async with pool.acquire() as conn:
+        try:
+            # Check if table exists
+            exists = await conn.fetchval("SELECT to_regclass('staff')")
+            if not exists:
+                 year = date.today().year
+                 return {"next_id": f"EMP-{year}-001"}
+
+            count = await conn.fetchval("SELECT COUNT(*) FROM staff")
+            # Generate ID like EMP-{YEAR}-{Count+1}
+            year = date.today().year
+            next_num = count + 1
+            return {"next_id": f"EMP-{year}-{next_num:03d}"}
+        except Exception as e:
+            # Fallback
+            import datetime
+            return {"next_id": f"EMP-{datetime.date.today().year}-001"}
+
 @router.get("/", response_model=List[dict])
 async def list_staff(
     search: Optional[str] = None,
@@ -91,8 +118,13 @@ async def list_staff(
         query += f" ORDER BY created_at DESC LIMIT ${param_count}"
         params.append(limit)
         
-        rows = await conn.fetch(query, *params)
-        return [dict(row) for row in rows]
+        try:
+             rows = await conn.fetch(query, *params)
+             return [dict(row) for row in rows]
+        except Exception as e:
+             # If column still undefined or other SQL error
+             print(f"Error listing staff: {e}")
+             return []
 
 @router.post("/", response_model=StaffResponse)
 async def create_staff(
@@ -124,16 +156,16 @@ async def create_staff(
                 );
             """)
             
-        # Smart Migration (Ensure columns exist)
-        try:
-            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS address TEXT")
-            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS qualifications TEXT")
-            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'teacher'")
-            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS salary_amount NUMERIC(10, 2) DEFAULT 0.00")
-            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS photo_url TEXT")
-            await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'")
-        except Exception:
-            pass
+            # Smart Migration (Ensure columns exist)
+            try:
+                await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS address TEXT")
+                await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS qualifications TEXT")
+                await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'teacher'")
+                await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS salary_amount NUMERIC(10, 2) DEFAULT 0.00")
+                await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS photo_url TEXT")
+                await conn.execute("ALTER TABLE staff ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'")
+            except Exception:
+                pass
 
             # Check unique employee_id
             exists = await conn.fetchval("SELECT 1 FROM staff WHERE employee_id = $1", staff.employee_id)

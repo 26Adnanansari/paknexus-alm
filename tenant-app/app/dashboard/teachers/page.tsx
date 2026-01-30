@@ -15,6 +15,19 @@ export default function StaffPage() {
     const [loading, setLoading] = useState(true);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
+
+    // Auto-suggest Employee ID
+    useEffect(() => {
+        if (isAddOpen) {
+            api.get('/staff/next-id')
+                .then(res => {
+                    if (res.data?.next_id) {
+                        setNewStaff(prev => ({ ...prev, employee_id: res.data.next_id }));
+                    }
+                })
+                .catch(err => console.error("Failed to suggest ID", err));
+        }
+    }, [isAddOpen]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingStaff, setEditingStaff] = useState<any>(null);
     const [submitting, setSubmitting] = useState(false);

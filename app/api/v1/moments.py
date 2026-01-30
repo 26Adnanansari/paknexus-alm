@@ -65,6 +65,19 @@ async def get_moment_by_order(
     tenant_id = current_user.get("tenant_id")
     
     async with pool.acquire() as conn:
+        # Check/Create table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS order_moments (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id UUID NOT NULL,
+                order_id UUID NOT NULL,
+                image_url TEXT NOT NULL,
+                caption TEXT,
+                status VARCHAR(20) DEFAULT 'published',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
         row = await conn.fetchrow(
             "SELECT * FROM order_moments WHERE tenant_id = $1 AND order_id = $2",
             tenant_id, order_id
@@ -86,6 +99,19 @@ async def list_moments(
     tenant_id = current_user.get("tenant_id")
     
     async with pool.acquire() as conn:
+        # Check/Create table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS order_moments (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id UUID NOT NULL,
+                order_id UUID NOT NULL,
+                image_url TEXT NOT NULL,
+                caption TEXT,
+                status VARCHAR(20) DEFAULT 'published',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+
         rows = await conn.fetch(
             """
             SELECT * FROM order_moments 
