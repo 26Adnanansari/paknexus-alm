@@ -199,9 +199,17 @@ export default function StaffPage() {
                     staffList.map((staff) => (
                         <div key={staff.staff_id} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-lg transition-all group">
                             <div className="flex items-start justify-between mb-4">
-                                <div className="h-12 w-12 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg border border-blue-100">
-                                    {staff.full_name?.[0]}
-                                </div>
+                                {staff.photo_url ? (
+                                    <img
+                                        src={staff.photo_url}
+                                        alt={staff.full_name}
+                                        className="h-14 w-14 rounded-full object-cover border border-slate-200 shadow-sm"
+                                    />
+                                ) : (
+                                    <div className="h-14 w-14 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg border border-blue-100 shadow-sm">
+                                        {staff.full_name?.[0]}
+                                    </div>
+                                )}
                                 <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${staff.role === 'teacher' ? 'bg-indigo-50 text-indigo-700' :
                                     staff.role === 'admin' ? 'bg-purple-50 text-purple-700' :
                                         'bg-slate-100 text-slate-600'

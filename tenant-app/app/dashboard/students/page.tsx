@@ -271,6 +271,7 @@ export default function StudentsPage() {
                     <table className="w-full text-left">
                         <thead className="bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider sticky top-0">
                             <tr className="h-10">
+                                <th className="px-6 py-2 w-20">Photo</th>
                                 <th className="px-6 py-2">Student Name</th>
                                 <th className="px-6 py-2">Admission No</th>
                                 <th className="px-6 py-2">Class</th>
@@ -281,14 +282,14 @@ export default function StudentsPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
-                                <tr><td colSpan={6} className="p-12 text-center text-slate-500">
+                                <tr><td colSpan={7} className="p-12 text-center text-slate-500">
                                     <div className="flex flex-col items-center justify-center gap-2">
                                         <Loader2 className="animate-spin text-blue-500" />
                                         <span>Loading directory...</span>
                                     </div>
                                 </td></tr>
                             ) : students.length === 0 ? (
-                                <tr><td colSpan={6} className="p-8 text-center text-slate-500">
+                                <tr><td colSpan={7} className="p-8 text-center text-slate-500">
                                     <div className="flex flex-col items-center justify-center gap-3 py-4">
                                         <div className="bg-slate-50 p-4 rounded-full">
                                             <Search className="h-8 w-8 text-slate-300" />
@@ -303,12 +304,14 @@ export default function StudentsPage() {
                                 students.map((student) => (
                                     <tr key={student.student_id} className="hover:bg-slate-50/80 transition-colors group">
                                         <td className="px-6 py-4">
+                                            <StudentAvatar
+                                                name={student.full_name}
+                                                photoUrl={student.photo_url || null}
+                                                size="sm"
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <StudentAvatar
-                                                    name={student.full_name}
-                                                    photoUrl={student.photo_url || null}
-                                                    size="sm"
-                                                />
                                                 <div>
                                                     <div className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                                                         <a href={`/dashboard/students/${student.student_id}`} className="hover:underline">

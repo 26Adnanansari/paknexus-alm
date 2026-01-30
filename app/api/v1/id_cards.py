@@ -60,6 +60,19 @@ async def list_templates(
     """List all ID card templates for tenant"""
     tenant_id = current_user["tenant_id"]
     async with pool.acquire() as conn:
+        # Auto-migrate: Ensure columns exist to prevent 500 error
+        try:
+            await conn.execute("""
+                ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS template_name VARCHAR(100) DEFAULT 'Unnamed Template';
+                ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+                ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE;
+                ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+                ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS front_bg_url TEXT;
+                ALTER TABLE id_card_templates ADD COLUMN IF NOT EXISTS back_bg_url TEXT;
+            """)
+        except Exception:
+            pass # Ignore if strict permissions prevent this, but usually Master DB pool has rights
+
         rows = await conn.fetch("""
             SELECT * FROM id_card_templates 
             WHERE tenant_id = $1 AND is_active = TRUE

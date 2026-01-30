@@ -14,6 +14,28 @@ router = APIRouter()
 class FeeHeadCreate(BaseModel):
     head_name: str
 
+class FeeHeadResponse(BaseModel):
+    head_id: UUID
+    head_name: str
+
+@router.get("/heads", response_model=List[FeeHeadResponse])
+async def list_fee_heads(
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """List all created fee heads"""
+    async with pool.acquire() as conn:
+        # Ensure table exists first (just in case)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS fee_heads (
+                head_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                head_name VARCHAR(100) NOT NULL UNIQUE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+        rows = await conn.fetch("SELECT head_id, head_name FROM fee_heads ORDER BY head_name")
+        return [dict(r) for r in rows]
+
 class ClassFeeCreate(BaseModel):
     class_name: str
     fee_head_id: UUID

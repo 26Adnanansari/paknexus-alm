@@ -456,18 +456,18 @@ export default function FeeStructurePage() {
                                     {classStructures.map((struct) => (
                                         <div
                                             key={struct.structure_id}
-                                            className="px-6 py-4 hover:bg-slate-50 transition-colors flex items-center justify-between"
+                                            className="px-4 md:px-6 py-4 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0"
                                         >
                                             <div className="flex-1">
-                                                <p className="font-bold text-slate-900">{struct.head_name}</p>
+                                                <p className="font-bold text-slate-900 text-base">{struct.head_name}</p>
                                                 <p className="text-sm text-slate-500 capitalize">{struct.frequency} payment</p>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="font-mono text-2xl font-black text-green-600">
+                                            <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center w-full md:w-auto">
+                                                <p className="font-mono text-xl md:text-2xl font-black text-green-600 order-2 md:order-1">
                                                     <span className="text-sm text-slate-400 mr-1">{struct.currency || 'PKR'}</span>
                                                     {struct.amount.toLocaleString()}
                                                 </p>
-                                                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold capitalize mt-1">
+                                                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold capitalize md:mt-1 order-1 md:order-2">
                                                     {struct.frequency}
                                                 </span>
                                             </div>
