@@ -70,6 +70,9 @@ async def get_current_school_user(
     pool: asyncpg.Pool = Depends(get_master_db_pool)
 ) -> dict:
     async with pool.acquire() as conn:
+        # CRITICAL: Ensure we're querying the public schema for master tables
+        await conn.execute("SET search_path TO public")
+        
         # Fetch user AND tenant status
         user = await conn.fetchrow("""
             SELECT 

@@ -19,6 +19,7 @@ async def get_school_profile(
     tenant_id = current_user["tenant_id"]
     
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         tenant = await conn.fetchrow(
             """
             SELECT 
@@ -121,6 +122,7 @@ async def update_branding(
     values.append(tenant_id)
     
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         query = f"""
             UPDATE tenants 
             SET {", ".join(update_fields)}, updated_at = NOW()
@@ -143,6 +145,7 @@ async def upload_id_card_template(
     tenant_id = current_user["tenant_id"]
     
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         # Check if table exists (it's in master_schema)
         # Actually, let's store it in a JSONB column in tenants or a specialized table.
         # Based on my plan, I wanted an id_card_templates table.
@@ -187,6 +190,7 @@ async def get_id_card_template(
     tenant_id = current_user["tenant_id"]
     
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         template = await conn.fetchrow(
             "SELECT * FROM id_card_templates WHERE tenant_id = $1",
             tenant_id

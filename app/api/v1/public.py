@@ -33,6 +33,7 @@ async def register_tenant(
         raise HTTPException(status_code=400, detail="Subdomain must contain only lowercase letters, numbers, and hyphens")
 
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         # Check if subdomain exists
         exists = await conn.fetchval("SELECT 1 FROM tenants WHERE subdomain = $1", data.subdomain)
         if exists:
@@ -106,6 +107,7 @@ async def get_public_branding(
          subdomain = domain.split(".")[0]
 
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         # Try finding by subdomain first
         tenant = await conn.fetchrow(
             """

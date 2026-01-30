@@ -34,6 +34,7 @@ async def login_access_token(
     Checks admin_users first, then tenant_users.
     """
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         # 1. Check Super Admin (admin_users)
         admin = await conn.fetchrow(
             """
@@ -126,6 +127,7 @@ async def forgot_password(
     expiry = datetime.now() + timedelta(minutes=15)
     
     async with pool.acquire() as conn:
+        await conn.execute("SET search_path TO public")
         # Check admin first
         user = await conn.fetchrow("SELECT user_id, full_name, 'admin' as type FROM admin_users WHERE email = $1", request_data.email)
         table = "admin_users"
