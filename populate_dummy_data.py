@@ -29,64 +29,96 @@ async def populate():
     
     try:
         # Ask for tenant subdomain
-        subdomain = input("Enter tenant subdomain (e.g. 'demo', 'school'): ").strip()
+        import sys
+        if len(sys.argv) > 1:
+            subdomain = sys.argv[1]
+            print(f"Using subdomain from argument: {subdomain}")
+        else:
+            subdomain = input("Enter tenant subdomain (e.g. 'demo', 'school'): ").strip()
+            
         if not subdomain:
             print("⚠️ No subdomain provided.")
             return
 
-        # Find tenant schema
-        row = await conn.fetchrow("SELECT schema_name FROM tenants WHERE subdomain = $1", subdomain)
+        await conn.execute("SET search_path TO public")
+        
+        # Find tenant ID
+        row = await conn.fetchrow("SELECT tenant_id FROM tenants WHERE subdomain = $1", subdomain)
         if not row:
             print(f"❌ Tenant '{subdomain}' not found!")
             return
             
-        schema = row['schema_name']
-        print(f"✅ Found schema: {schema}")
+        tenant_id = str(row['tenant_id'])
+        # DERIVE schema name: tenant_{uuid_no_dashes}
+        schema = f"tenant_{tenant_id.replace('-', '')}"
+        print(f"✅ Found tenant ID: {tenant_id}")
+        print(f"✅ Target schema: {schema}")
+        
+        # Create schema if not exists
+        await conn.execute(f"CREATE SCHEMA IF NOT EXISTS \"{schema}\"")
         
         # Switch to tenant schema
-        await conn.execute(f"SET search_path TO {schema}")
+        await conn.execute(f"SET search_path TO \"{schema}\"")
         
         # 2. Create Tables (Idempotent)
         print("🛠️  Ensuring tables exist...")
+        
+        # Classes
         await conn.execute("""
-            -- Classes
             CREATE TABLE IF NOT EXISTS classes (
                 class_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 class_name VARCHAR(50) NOT NULL,
                 section VARCHAR(10),
+                academic_year VARCHAR(20) DEFAULT '2025-2026',
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 UNIQUE(class_name, section)
             );
+        """)
 
-            -- Staff
+        # Staff
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS staff (
-                staff_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Note: API uses 'teacher_id' alias in joins sometimes
+                staff_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 full_name VARCHAR(100) NOT NULL,
                 email VARCHAR(100),
                 role VARCHAR(20) DEFAULT 'teacher',
+                employee_id VARCHAR(50) UNIQUE,
+                join_date DATE DEFAULT CURRENT_DATE,
                 is_active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
+        """)
 
-            -- Students
+        # Students
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS students (
                 student_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 full_name VARCHAR(100) NOT NULL,
-                roll_no VARCHAR(20),
-                class_id UUID REFERENCES classes(class_id),
+                current_class VARCHAR(50),
+                current_section VARCHAR(50),
+                roll_number VARCHAR(20),
+                admission_number VARCHAR(50) UNIQUE,
+                admission_date DATE,
+                date_of_birth DATE,
+                gender VARCHAR(20),
                 status VARCHAR(20) DEFAULT 'active',
+                status_date DATE,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
+        """)
 
-            -- Subjects
+        # Subjects
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS subjects (
                 subject_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 subject_name VARCHAR(100) NOT NULL,
-                class_id UUID REFERENCES classes(class_id), -- Optional: subject specific to class?
+                class_id UUID, -- Loose reference as class_id might not match valid FK if schema drifted
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
+        """)
 
-            -- Periods
+        # Periods
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS school_periods (
                 period_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 name VARCHAR(50) NOT NULL,
@@ -95,15 +127,18 @@ async def populate():
                 order_index INT NOT NULL,
                 is_break BOOLEAN DEFAULT FALSE
             );
+        """)
 
-            -- Timetable
+        # Timetable
+        # We drop FK constraints for safety if schema is mixed
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS timetable_allocations (
                 allocation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                class_id UUID REFERENCES classes(class_id),
-                period_id UUID REFERENCES school_periods(period_id),
-                teacher_id UUID REFERENCES staff(staff_id),
-                subject_id UUID REFERENCES subjects(subject_id),
-                day_of_week VARCHAR(20) NOT NULL, -- Monday, Tuesday...
+                class_id UUID,
+                period_id UUID,
+                teacher_id UUID,
+                subject_id UUID,
+                day_of_week VARCHAR(20) NOT NULL,
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 UNIQUE(class_id, period_id, day_of_week)
             );
@@ -116,21 +151,27 @@ async def populate():
         class_ids = []
         for cls in CLASSES:
             for sec in SECTIONS:
-                cid = await conn.fetchval("""
-                    INSERT INTO classes (class_name, section) VALUES ($1, $2)
-                    ON CONFLICT (class_name, section) DO UPDATE SET class_name = EXCLUDED.class_name
-                    RETURNING class_id
-                """, cls, sec)
+                # Check if exists
+                cid = await conn.fetchval("SELECT class_id FROM classes WHERE class_name = $1 AND section = $2", cls, sec)
+                
+                if not cid:
+                    cid = await conn.fetchval("""
+                        INSERT INTO classes (class_name, section, academic_year) VALUES ($1, $2, '2025-2026')
+                        RETURNING class_id
+                    """, cls, sec)
+                
                 class_ids.append(cid)
 
         # Teachers
         print("👨‍🏫 Inserting Teachers...")
         teacher_ids = []
-        for name in TEACHERS:
+        for i, name in enumerate(TEACHERS):
+            emp_id = f"EMP-{100+i}"
             tid = await conn.fetchval("""
-                INSERT INTO staff (full_name, role) VALUES ($1, 'teacher')
+                INSERT INTO staff (full_name, role, employee_id, join_date) VALUES ($1, 'teacher', $2, $3)
+                ON CONFLICT (employee_id) DO UPDATE SET full_name = EXCLUDED.full_name
                 RETURNING staff_id
-            """, name) # We use simple insert, assuming no conflict on name for now
+            """, name, emp_id, date.today()) 
             teacher_ids.append(tid)
 
         # Subjects
@@ -148,32 +189,48 @@ async def populate():
         first_names = ["Ali", "Ahmed", "Sara", "Fatima", "Zain", "Bilal", "Hina", "Omar", "Ayesha", "Usman"]
         last_names = ["Khan", "Malik", "Sheikh", "Raja", "Butt", "Qureshi", "Ansari", "Syed"]
         
-        for cid in class_ids:
+        # We need class names/sections to map students
+        class_info = [] # List of (class_name, section)
+        for cls in CLASSES:
+            for sec in SECTIONS:
+                class_info.append((cls, sec))
+        
+        for idx, (cls_name, section) in enumerate(class_info):
             # Add 5 students per class
-            for _ in range(STUDENTS_PER_CLASS):
+            for s_idx in range(STUDENTS_PER_CLASS):
                 fname = f"{random.choice(first_names)} {random.choice(last_names)}"
+                roll_no = str(random.randint(1000, 9999))
+                adm_no = f"ADM-{2025}-{idx}-{s_idx}"
+                
                 await conn.execute("""
-                    INSERT INTO students (full_name, class_id, roll_no) 
-                    VALUES ($1, $2, $3)
-                """, fname, cid, str(random.randint(1, 1000)))
+                    INSERT INTO students (
+                        full_name, current_class, current_section, 
+                        roll_number, admission_number, admission_date,
+                        status, status_date, date_of_birth, gender
+                    ) 
+                    VALUES ($1, $2, $3, $4, $5, $6, 'active', $6, '2015-01-01', 'Male')
+                    ON CONFLICT (admission_number) DO NOTHING
+                """, fname, cls_name, section, roll_no, adm_no, date.today())
 
         # Periods
         print("⏰ Inserting Periods...")
-        periods = [
-            ("1st Period", "08:00", "08:40"),
-            ("2nd Period", "08:40", "09:20"),
-            ("3rd Period", "09:20", "10:00"),
-            ("Break", "10:00", "10:20"),
-            ("4th Period", "10:20", "11:00"),
-            ("5th Period", "11:00", "11:40"),
-            ("6th Period", "11:40", "12:20")
+        from datetime import time
+        
+        periods_data = [
+            ("1st Period", time(8, 0), time(8, 40)),
+            ("2nd Period", time(8, 40), time(9, 20)),
+            ("3rd Period", time(9, 20), time(10, 0)),
+            ("Break", time(10, 0), time(10, 20)),
+            ("4th Period", time(10, 20), time(11, 0)),
+            ("5th Period", time(11, 0), time(11, 40)),
+            ("6th Period", time(11, 40), time(12, 20))
         ]
         
         period_ids = []
-        for idx, (name, start, end) in enumerate(periods):
+        for idx, (name, start, end) in enumerate(periods_data):
             pid = await conn.fetchval("""
                 INSERT INTO school_periods (name, start_time, end_time, order_index, is_break)
-                VALUES ($1, $2::time, $3::time, $4, $5)
+                VALUES ($1, $2, $3, $4, $5)
                 RETURNING period_id
             """, name, start, end, idx+1, name == "Break")
             period_ids.append(pid)
