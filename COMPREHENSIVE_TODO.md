@@ -849,10 +849,21 @@
   - Bulk email sending
   - Email tracking
 
-- [ ] **CREATE**: SMS service (Future)
+  - [ ] **CREATE**: SMS service (Future)
   - Twilio integration (when available)
   - SMS templates
   - Important alerts via SMS
+
+#### 17.5 Social Moments (School Feed) 📸
+- [x] **CREATE**: Moments Schema (`school_moments` table)
+- [x] **CREATE**: Backend API (`/moments`)
+  - [x] Create moment with 'pending' status
+  - [x] List moments (filtered by status)
+  - [x] Admin approval workflow (Approve/Reject)
+- [x] **CREATE**: Frontend Feed
+  - [x] Public feed view
+  - [x] Admin approval dashboard
+  - [x] Upload integration
 
 #### 17.3 Frontend Development
 - [ ] **CREATE**: Announcements page
@@ -1133,4 +1144,4 @@
 5. **Front Office/Visitor Management**: Gate pass, appointments.
 
 ---
-**Last Updated**: January 30, 2026 | **Status**: Active Development 🚀
+**Last Updated**: January 31, 2026 | **Status**: Active Development 🚀

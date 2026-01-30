@@ -18,8 +18,23 @@ class ClassFeeCreate(BaseModel):
     class_name: str
     fee_head_id: UUID
     amount: float
-    frequency: str = "monthly"
     currency: str = "PKR"
+
+class ScholarshipAssign(BaseModel):
+    student_id: UUID
+    discount_percent: float
+    type: str # 'merit', 'financial_aid'
+
+class GenerateInvoices(BaseModel):
+    class_name: Optional[str] = None
+    month_year: str # e.g. "Sep-2025"
+    due_date: date
+
+class PaymentRecord(BaseModel):
+    invoice_id: UUID
+    amount: float
+    method: str # 'cash', 'bank', 'online'
+    remarks: Optional[str] = None
 
 # ... (Previous code) ...
 
