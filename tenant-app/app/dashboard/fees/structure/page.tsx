@@ -20,6 +20,7 @@ interface FeeStructure {
     head_name: string;
     amount: number;
     frequency: string;
+    currency?: string;
 }
 
 interface ClassItem {
@@ -54,7 +55,8 @@ export default function FeeStructurePage() {
         custom_class_name: '',
         fee_head_id: '',
         amount: '',
-        frequency: 'monthly'
+        frequency: 'monthly',
+        currency: 'PKR'
     });
 
     useEffect(() => {
@@ -138,11 +140,12 @@ export default function FeeStructurePage() {
                 class_name: targetClass,
                 fee_head_id: newStructure.fee_head_id,
                 amount: parseFloat(newStructure.amount),
-                frequency: newStructure.frequency
+                frequency: newStructure.frequency,
+                currency: newStructure.currency
             });
             console.log('Structure created:', response.data);
             toast.success('Fee structure created successfully');
-            setNewStructure({ class_name: '', custom_class_name: '', fee_head_id: '', amount: '', frequency: 'monthly' });
+            setNewStructure({ class_name: '', custom_class_name: '', fee_head_id: '', amount: '', frequency: 'monthly', currency: 'PKR' });
             setShowNewStructure(false);
 
             // If new class was added, add to list
@@ -362,16 +365,25 @@ export default function FeeStructurePage() {
                                 </select>
 
                                 {/* Amount Input with Currency */}
-                                <div className="relative">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
-                                        PKR
-                                    </div>
+                                <div className="flex gap-2">
+                                    <select
+                                        value={newStructure.currency}
+                                        onChange={(e) => setNewStructure({ ...newStructure, currency: e.target.value })}
+                                        className="w-24 px-2 py-2.5 border-2 border-slate-200 rounded-xl focus:border-green-500 bg-slate-50 font-bold text-slate-600 outline-none"
+                                    >
+                                        <option value="PKR">PKR</option>
+                                        <option value="USD">USD</option>
+                                        <option value="EUR">EUR</option>
+                                        <option value="GBP">GBP</option>
+                                        <option value="SAR">SAR</option>
+                                        <option value="AED">AED</option>
+                                    </select>
                                     <input
                                         type="number"
                                         value={newStructure.amount}
                                         onChange={(e) => setNewStructure({ ...newStructure, amount: e.target.value })}
                                         placeholder="Amount"
-                                        className="w-full pl-12 pr-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none"
+                                        className="flex-1 px-4 py-2.5 border-2 border-slate-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none"
                                     />
                                 </div>
 
@@ -468,7 +480,8 @@ export default function FeeStructurePage() {
                                             </div>
                                             <div className="text-right">
                                                 <p className="font-mono text-2xl font-black text-green-600">
-                                                    PKR {struct.amount.toLocaleString()}
+                                                    <span className="text-sm text-slate-400 mr-1">{struct.currency || 'PKR'}</span>
+                                                    {struct.amount.toLocaleString()}
                                                 </p>
                                                 <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold capitalize mt-1">
                                                     {struct.frequency}

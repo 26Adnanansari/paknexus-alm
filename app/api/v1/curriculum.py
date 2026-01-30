@@ -38,14 +38,9 @@ async def list_classes(
     pool: asyncpg.Pool = Depends(get_tenant_db_pool),
     current_user: dict = Depends(get_current_school_user)
 ):
-    """List all classes."""
+    """List all classes, including those only found in student records."""
     async with pool.acquire() as conn:
-        # Schema evolution: Create table if not exists with all columns
-        # If table exists from old version, we might miss columns. 
-        # For MVP, we'll try to add columns if they catch exception or just use CREATE IF NOT EXISTS
-        # Ideally we use 'ALTER ADD COLUMN IF NOT EXISTS' via a helper or schema check.
-        # But 'CREATE TABLE IF NOT EXISTS' won't add columns to existing table.
-        
+        # Schema evolution (same as before)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS classes (
                 class_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -60,22 +55,47 @@ async def list_classes(
             );
         """)
         
-        # Helper to ensure columns exist (Quick Migration for Dev)
         try:
              await conn.execute("ALTER TABLE classes ADD COLUMN IF NOT EXISTS class_teacher_id UUID REFERENCES staff(staff_id) ON DELETE SET NULL")
              await conn.execute("ALTER TABLE classes ADD COLUMN IF NOT EXISTS room_number VARCHAR(20)")
              await conn.execute("ALTER TABLE classes ADD COLUMN IF NOT EXISTS capacity INTEGER DEFAULT 30")
         except Exception:
-            pass # Ignore if fails, though Postgres supports IF NOT EXISTS in newer versions
+            pass
 
+        # 1. Fetch Defined Classes
         state_query = """
-            SELECT c.*, s.full_name as class_teacher_name 
+            SELECT c.*, s.full_name as class_teacher_name, true as is_defined
             FROM classes c 
             LEFT JOIN staff s ON c.class_teacher_id = s.staff_id 
-            ORDER BY c.class_name, c.section
         """
-        rows = await conn.fetch(state_query)
-        return [dict(row) for row in rows]
+        defined_rows = await conn.fetch(state_query)
+        defined_classes = [dict(row) for row in defined_rows]
+        defined_names = {r['class_name'] for r in defined_classes}
+
+        # 2. Fetch Student-Only Classes (Legacy/Ad-hoc)
+        try:
+            student_query = "SELECT DISTINCT current_class FROM students WHERE current_class IS NOT NULL AND current_class != ''"
+            student_rows = await conn.fetch(student_query)
+            
+            for row in student_rows:
+                cname = row['current_class']
+                if cname not in defined_names:
+                    defined_classes.append({
+                        "class_id": None, # Ad-hoc
+                        "class_name": cname,
+                        "section": "-",
+                        "is_defined": False,
+                        "room_number": None,
+                        "capacity": 0
+                    })
+                    defined_names.add(cname) # prevent dupes
+        except Exception:
+            pass # Students table might not exist yet if fresh install
+
+        # Sort by name
+        defined_classes.sort(key=lambda x: x['class_name'])
+        
+        return defined_classes
 
 @router.post("/classes", response_model=dict)
 async def create_class(

@@ -1089,3 +1089,47 @@
   - Monitor Children's Progress
   - Pay Fees Online
   - Communication with Teachers
+
+---
+
+## 🧠 **ARCHITECTURE & INTEGRATION STRATEGY (Brainstorming)**
+
+### 22. System Interconnectivity Map
+*Ensuring every service relates to each other efficiently.*
+
+#### 22.1 Student <-> Fee Linking
+- **Current**: Fees are manually assigned or class-based.
+- **Future Link**: 
+  - `Student` creation -> Auto-assign `Class Fee Structure`.
+  - `Transport` assignment -> Auto-add `Transport Fee` to student's invoice.
+  - `Scholarship` assignment -> Auto-deduct from `Fee Invoice`.
+
+#### 22.2 Academic <-> Staff Linking
+- **Current**: Classes have "Class Teacher".
+- **Future Link**:
+  - `Timetable` generation should enforce `Staff` availability (checking `Leave` records).
+  - `Exam` invigilation should pull from available `Staff`.
+  - `Payroll` should deduct pay for unapproved `Absence` in Staff Attendance.
+
+#### 22.3 Class <-> Inventory/Asset Linking
+- **Current**: Independent.
+- **Future Link**:
+  - `Room` allocation in Timetable -> Checks `Classroom` capacity and `Asset` (Projector/Board) availability.
+  - `Library` books -> Linked to `Subject` curriculum (Required Reading).
+
+#### 22.4 Communication Hub Integration
+- **Centralized Notification Engine**:
+  - `Attendance` (Absent) -> Auto SMS to Parent.
+  - `Fees` (Overdue) -> Auto Email/SMS reminder.
+  - `Results` (Published) -> Auto App Notification.
+  - `Staff` (Leave Approved) -> Notification to Staff & HR.
+
+### 23. Remaining Core Modules (To Be Built)
+1. **Payroll System**: Full salary slip generation, tax calculation.
+2. **Inventory/Asset Management**: Tracking school furniture, labs, devices.
+3. **Hostel/Dormitory Management**: Room allocation, mess fees.
+4. **Alumni Management**: Events, donations, history.
+5. **Front Office/Visitor Management**: Gate pass, appointments.
+
+---
+**Last Updated**: January 30, 2026 | **Status**: Active Development 🚀
