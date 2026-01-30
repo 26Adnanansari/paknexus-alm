@@ -320,7 +320,7 @@ export default function FeeStructurePage() {
                             exit={{ opacity: 0, height: 0 }}
                             className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200"
                         >
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                                 {/* Class Dropdown */}
                                 <select
                                     value={newStructure.class_name}

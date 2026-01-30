@@ -6,9 +6,10 @@ interface StudentAvatarProps {
     photoUrl: string | null;
     name: string;
     size?: 'sm' | 'md' | 'lg' | 'xl';
+    className?: string;
 }
 
-export default function StudentAvatar({ photoUrl, name, size = 'md' }: StudentAvatarProps) {
+export default function StudentAvatar({ photoUrl, name, size = 'md', className = '' }: StudentAvatarProps) {
     const [imageError, setImageError] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -60,6 +61,7 @@ export default function StudentAvatar({ photoUrl, name, size = 'md' }: StudentAv
           text-white font-semibold
           flex-shrink-0
           shadow-sm border border-white/20
+          ${className}
         `}
             >
                 {getInitials(name)}
@@ -69,7 +71,7 @@ export default function StudentAvatar({ photoUrl, name, size = 'md' }: StudentAv
 
     // Show image with fallback
     return (
-        <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex-shrink-0 bg-slate-100 relative shadow-sm border border-slate-200`}>
+        <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex-shrink-0 bg-slate-100 relative shadow-sm border border-slate-200 ${className}`}>
             {loading && (
                 <div className="absolute inset-0 animate-pulse bg-slate-200 z-10" />
             )}

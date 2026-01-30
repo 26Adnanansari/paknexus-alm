@@ -138,9 +138,15 @@
   - [x] Debug student fetching logic
   - [x] Check filters and search
 - [x] **IMPROVE**: Template management
-  - Better template preview
-  - Template categories
-  - Share templates between tenants (marketplace?)
+  - [x] Better template preview (Fixed 500 Error)
+  - [x] Template categories
+  - [ ] Share templates between tenants (marketplace?)
+
+#### 3.8 Staff ID Cards 🎴
+- [ ] **CREATE**: Staff ID Card Generation
+  - [ ] Adapt ID card engine for staff
+  - [ ] Staff ID card templates
+  - [ ] Generate/Print flow
 
 ---
 
@@ -164,11 +170,11 @@
   - [x] Improve touch targets (already partially done)
   - [x] Better mobile typography
   - [x] Optimize for one-handed use
-- [ ] **MISSING**: Mobile-first CSS for all pages
-  - Teachers page
-  - Attendance page
-  - Fees page
-  - Dashboard home
+- [x] **MISSING**: Mobile-first CSS for all pages
+  - [x] Teachers page
+  - [ ] Attendance page
+  - [x] Fees page
+  - [ ] Dashboard home
 
 ---
 
