@@ -109,12 +109,16 @@ async def get_attendance_stats(
     """Get attendance statistics for the dashboard"""
     async with pool.acquire() as conn:
         try:
-            # Check if tables exist first
+            # Check if tables exist first - check BOTH tables
             tables_exist = await conn.fetchval("""
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables 
                     WHERE table_schema = current_schema() 
                     AND table_name = 'attendance_sessions'
+                ) AND EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_schema = current_schema() 
+                    AND table_name = 'attendance_records'
                 )
             """)
             
@@ -139,21 +143,28 @@ async def get_attendance_stats(
                 WHERE s.date = $1
             """, today)
             
+            # Safe unpacking
+            if not stats: 
+                return {"today_present":0, "today_absent":0, "today_late":0, "weekly_attendance":[]}
+                
             return {
                 "today_present": stats['present'] or 0,
                 "today_absent": stats['absent'] or 0,
                 "today_late": stats['late'] or 0,
-                "weekly_attendance": [] # Placeholder for chart data
+                "weekly_attendance": [] # TODO: Add weekly logic
             }
+            
         except Exception as e:
-            # Fallback if query fails
-            print(f"Stats error: {e}")
+            print(f"Stats Error: {e}")
+            # Return empty stats instead of 500
             return {
                 "today_present": 0,
                 "today_absent": 0,
                 "today_late": 0,
-                "error": str(e)
+                "weekly_attendance": []
             }
+            
+
 
 # --- Endpoints (Phase 4) ---
 
