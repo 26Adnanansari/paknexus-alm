@@ -1,19 +1,35 @@
 # 🎯 Comprehensive Implementation & Fix Plan
 
 > **📌 QUICK STATUS:** See `PROJECT_STATUS.md` for current state and completed features.  
-> **Last Updated:** 2026-01-28 | **Completed:** ID Cards, Admissions, Timetable, Attendance, Exams, Results, Transport, Inventory, Library, Communication, Finance Reports ✅
+> **Last Updated:** 2026-01-30 | **Completed:** ID Cards, Admissions, Timetable, Attendance, Exams, Results, Transport, Inventory, Library, Communication, Finance Reports ✅
 
 ## 🚨 **EMERGENCY BUG FIXES (IMMEDIATE PRIORITY)**
 
-### 0. Critical Backend & Frontend Fixes
-- [x] **FIX**: `GET /api/v1/students/next-id` 422 Error (Validation/Table missing)
-- [x] **FIX**: `GET /api/v1/students` 500 Error (Crash on list)
-- [x] **FIX**: `GET /api/v1/attendance/stats` 404 Error (Endpoint missing)
-- [x] **FIX**: `POST /api/v1/attendance/system/init-tables` 404 Error (Alias missing)
-- [x] **FIX**: `GET /api/v1/id-cards/templates` 422 Error (Schema validation)
-- [ ] **FIX**: "Auto session creating" loop in Frontend (Login/Auth loop)
-- [ ] **FIX**: ID Card Uploaded Templates not showing (Checkboxes/Table UI)
-- [ ] **FIX**: Student List Filters (Class, Last Generated, Is Student)
+### 0. Critical Database Schema Repairs ✅ COMPLETED
+- [x] **FIXED**: `relation "tenant_users" does not exist` - Master schema repaired
+  - Created `app/db/repair.py` with self-healing function
+  - Integrated into `app/main.py` startup sequence
+  - Added emergency public endpoint `/api/v1/public/sys-repair-master-999`
+  - Verified 4 active users exist in database
+- [x] **FIXED**: `relation "order_moments" does not exist` - Smart Init added
+  - Added table creation logic to `moments.py` create_moment endpoint
+- [x] **FIXED**: Student photo_url column missing
+  - Added migration in `students.py` to ensure photo_url column exists
+- [x] **FIXED**: Attendance pgcrypto extension errors
+  - Wrapped extension creation in try-except to handle permission issues
+
+### 0.1 Critical Auth/Session Issues 🔴 IN PROGRESS
+- [ ] **URGENT**: Infinite request loop (1000+ pending requests)
+  - Frontend stuck retrying failed API calls
+  - Old JWT tokens causing authentication failures
+  - **ACTION NEEDED**: Clear browser cookies and re-login after Render deploys
+- [ ] **URGENT**: Auto-login/logout loop
+  - Session management broken due to stale tokens
+  - **FIX**: Implement proper session invalidation on 401/403 errors
+  - **FIX**: Add token refresh logic in frontend
+- [ ] **TODO**: Add session timeout handling
+  - Gracefully handle expired sessions
+  - Redirect to login with helpful message
 
 ## 🚨 **CRITICAL ISSUES (FIX IMMEDIATELY)**
 
@@ -90,6 +106,44 @@
   - Update all documentation
 
 ---
+
+## 🎯 **NEXT PRIORITY FEATURES (After Auth Fix)**
+
+### 3.5 OAuth2 Social Login Enhancement 🔐
+- [ ] **ADD**: Google OAuth Provider
+  - Configure Google Cloud Console
+  - Add to NextAuth providers
+  - Test login flow
+- [ ] **ADD**: GitHub OAuth Provider (optional)
+  - For developer-friendly schools
+  - Easy setup via GitHub Apps
+- [ ] **IMPROVE**: Email/Password flow
+  - Add password strength indicator
+  - Implement "forgot password" flow
+  - Add email verification
+
+### 3.6 Student Image Management 📸
+- [x] **FIXED**: photo_url column exists and saves
+- [ ] **IMPROVE**: Image upload UX
+  - Add drag-and-drop upload
+  - Image preview before save
+  - Crop/resize functionality
+- [ ] **ADD**: Bulk image upload
+  - CSV with image URLs
+  - Zip file upload with naming convention
+  - Auto-match by admission number
+
+### 3.7 ID Card System Enhancements 🎴
+- [ ] **FIX**: "No students found" in ID Card Center
+  - Debug student fetching logic
+  - Check filters and search
+- [ ] **IMPROVE**: Template management
+  - Better template preview
+  - Template categories
+  - Share templates between tenants (marketplace?)
+
+---
+
 
 ## 📱 **MOBILE UI/UX ISSUES**
 
