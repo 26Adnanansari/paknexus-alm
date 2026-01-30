@@ -20,7 +20,7 @@ import KarmaCard from '@/components/karma/KarmaCard';
 
 export default function Dashboard() {
     const { branding } = useBranding();
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const router = useRouter();
 
@@ -39,7 +39,7 @@ export default function Dashboard() {
 
     // Fetch real stats
     React.useEffect(() => {
-        if (session?.user) {
+        if (status === 'authenticated') {
             const fetchStats = async () => {
                 try {
                     const api = (await import('@/lib/api')).default;
@@ -94,7 +94,7 @@ export default function Dashboard() {
             };
             fetchStats();
         }
-    }, [session]);
+    }, [status]);
 
     return (
         <div className="p-4 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
