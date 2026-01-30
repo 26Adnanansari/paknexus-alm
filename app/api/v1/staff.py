@@ -24,10 +24,10 @@ class StaffCreate(BaseModel):
     join_date: date
     photo_url: Optional[str] = None
     status: Optional[str] = 'active'
-
+    
 class StaffResponse(StaffCreate):
     staff_id: UUID
-    created_at: str = None
+    created_at: Optional[str] = None # date to string in response usually handled by custom encoder or Pydantic v2
 
 # --- Endpoints ---
 
@@ -57,6 +57,38 @@ async def get_next_employee_id(
             # Fallback
             import datetime
             return {"next_id": f"EMP-{datetime.date.today().year}-001"}
+
+@router.get("/{staff_id}/id-card-data")
+async def get_staff_id_card_data(
+    staff_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """
+    Get staff data formatted for ID Card generation.
+    Maps staff fields to the generic ID card structure.
+    """
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM staff WHERE staff_id = $1", staff_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Staff not found")
+            
+        data = dict(row)
+        
+        # Return mapped structure compatible with ID Card Generator
+        return {
+            "student_id": data['staff_id'], # reusing field name for compatibility
+            "full_name": data['full_name'],
+            "admission_number": data['employee_id'],
+            "current_class": data['designation'], # Map Designation to Class slot
+            "father_name": data['department'] or "", # Map Department to Father Name slot
+            "father_phone": data['phone'] or "",
+            "date_of_birth": str(data['join_date']), # Map Join Date to DOB slot usually
+            "photo_url": data.get('photo_url'),
+            "gender": "Staff", # Placeholder
+            "address": data.get('address'),
+            "type": "staff"  # Marker for frontend
+        }
 
 @router.get("/", response_model=List[dict])
 async def list_staff(

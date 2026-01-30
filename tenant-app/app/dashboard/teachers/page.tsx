@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, User, Mail, Phone, School, Briefcase, MapPin, GraduationCap, DollarSign, Edit, Trash2, X, Loader2 } from 'lucide-react';
+import { Plus, User, Mail, Phone, School, Briefcase, MapPin, GraduationCap, DollarSign, Edit, Trash2, X, Loader2, CreditCard, Printer } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from 'sonner';
 import PhotoUpload from '@/components/PhotoUpload';
+import IDCardPreview, { IDCardData } from '@/components/dashboard/id-cards/IDCardPreview';
+import { useBranding } from '@/context/branding-context';
 
 export default function StaffPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -155,6 +157,39 @@ export default function StaffPage() {
         }
     };
 
+    // --- ID Card Logic ---
+    const [isIDCardOpen, setIsIDCardOpen] = useState(false);
+    const [idCardStaff, setIdCardStaff] = useState<any>(null);
+    const [idCardData, setIdCardData] = useState<IDCardData | null>(null);
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+    const { branding } = useBranding();
+
+    const handleIDCardClick = async (staff: any) => {
+        setIdCardStaff(staff);
+        setIsIDCardOpen(true);
+        setIdCardData(null); // Reset while loading
+
+        try {
+            // 1. Fetch Templates if needed
+            if (templates.length === 0) {
+                const resTemp = await api.get('/id-cards/templates');
+                setTemplates(resTemp.data);
+                if (resTemp.data.length > 0) setSelectedTemplateId(resTemp.data[0].template_id);
+            }
+
+            // 2. Fetch Staff ID Data
+            const resData = await api.get(`/staff/${staff.staff_id}/id-card-data`);
+            setIdCardData(resData.data);
+        } catch (e) {
+            console.error(e);
+            toast.error("Failed to load ID card data");
+            setIsIDCardOpen(false);
+        }
+    };
+
+    const activeTemplate = templates.find(t => t.template_id === selectedTemplateId) || templates[0];
+
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -197,7 +232,20 @@ export default function StaffPage() {
                     </div>
                 ) : (
                     staffList.map((staff) => (
-                        <div key={staff.staff_id} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-lg transition-all group">
+                        <div key={staff.staff_id} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-lg transition-all group relative">
+                            {/* Actions Overlay */}
+                            <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm p-1 rounded-lg border border-slate-100 shadow-sm z-10">
+                                <button onClick={(e) => { e.stopPropagation(); handleIDCardClick(staff); }} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Generate ID Card">
+                                    <CreditCard size={16} />
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleEditClick(staff); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                                    <Edit size={16} />
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDelete(staff.staff_id); }} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+
                             <div className="flex items-start justify-between mb-4">
                                 {staff.photo_url ? (
                                     <img
@@ -216,20 +264,13 @@ export default function StaffPage() {
                                     }`}>
                                     {staff.role}
                                 </span>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <a href={`/dashboard/teachers/${staff.staff_id}`} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded" title="View Profile">
-                                        <User size={16} />
-                                    </a>
-                                    <button onClick={(e) => { e.stopPropagation(); handleEditClick(staff); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit size={16} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(staff.staff_id); }} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Trash2 size={16} /></button>
-                                </div>
                             </div>
 
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                                    <a href={`/dashboard/teachers/${staff.staff_id}`} className="hover:underline focus:outline-none">
+                                    <span className="cursor-pointer">
                                         {staff.full_name}
-                                    </a>
+                                    </span>
                                 </h3>
                                 <p className="text-sm text-slate-500 font-medium">{staff.designation || 'No Designation'}</p>
                                 {staff.department && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><School size={12} /> {staff.department}</p>}
@@ -453,6 +494,145 @@ export default function StaffPage() {
                                     </Button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* ID Card Generation Modal */}
+            <AnimatePresence>
+                {isIDCardOpen && idCardStaff && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
+                            onClick={() => setIsIDCardOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative bg-transparent w-full max-w-5xl h-[85vh] flex flex-col md:flex-row gap-6 p-4 max-h-screen overflow-hidden"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Sidebar Controls */}
+                            <div className="w-full md:w-80 bg-white rounded-2xl p-6 shadow-2xl flex flex-col">
+                                <h2 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
+                                    <CreditCard className="text-blue-600" />
+                                    Staff ID Card
+                                </h2>
+
+                                <div className="space-y-6 flex-1 overflow-y-auto">
+                                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold border border-blue-200">
+                                                {idCardStaff.full_name[0]}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-900 text-sm">{idCardStaff.full_name}</p>
+                                                <p className="text-xs text-slate-500 font-mono">{idCardStaff.employee_id}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Select Template</h3>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {templates.map(t => (
+                                                <button
+                                                    key={t.template_id}
+                                                    onClick={() => setSelectedTemplateId(t.template_id)}
+                                                    className={`
+                                                        rounded-lg overflow-hidden border-2 transition-all aspect-[2/3] relative group
+                                                        ${selectedTemplateId === t.template_id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-slate-200 hover:border-blue-300'}
+                                                    `}
+                                                >
+                                                    <img src={t.front_bg_url} className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[9px] py-1 truncate px-1">
+                                                        {t.template_name}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                            {templates.length === 0 && <div className="text-xs text-slate-500 italic col-span-2">No templates found. Using default.</div>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-6 mt-auto border-t border-slate-100 flex flex-col gap-3">
+                                    <Button onClick={() => window.print()} className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200">
+                                        <Printer size={16} className="mr-2" />
+                                        Print ID Card
+                                    </Button>
+                                    <Button variant="outline" onClick={() => setIsIDCardOpen(false)} className="w-full">
+                                        Close
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* Preview Area */}
+                            <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 flex items-center justify-center relative overflow-hidden print-area">
+                                {!idCardData ? (
+                                    <Loader2 className="animate-spin text-white w-10 h-10" />
+                                ) : (
+                                    <div className="flex gap-8 print:gap-4 print:flex-row flex-col lg:flex-row items-center">
+                                        {/* Wrappers to help with printing separation if needed */}
+                                        <div className="print:m-2">
+                                            <p className="text-white/50 text-xs font-bold uppercase mb-4 text-center print:hidden">Front Side</p>
+                                            <IDCardPreview
+                                                data={idCardData}
+                                                frontBg={activeTemplate?.front_bg_url || null}
+                                                backBg={null} // Only show front in this block
+                                                branding={branding || undefined}
+                                                isFlipped={false}
+                                                className="shadow-2xl"
+                                                showPlaceholder={true}
+                                            />
+                                        </div>
+
+                                        <div className="print:m-2">
+                                            <p className="text-white/50 text-xs font-bold uppercase mb-4 text-center print:hidden">Back Side</p>
+
+                                            {/* Hack: Force IDCardPreview to show Back Side by tricking it or splitting it? 
+                                                IDCardPreview is a flip card. For printing, we usually want side-by-side. 
+                                                I'll render it twice, once flipped.
+                                            */}
+                                            <div className="relative w-[300px] h-[480px]">
+                                                {/* Render Front logic but pass BackBG as FrontBG? No, that messes up content overlay.
+                                                    Better: Just render the component with isFlipped=true.
+                                                  */}
+                                                <IDCardPreview
+                                                    data={idCardData}
+                                                    frontBg={null} // Hide front
+                                                    backBg={activeTemplate?.back_bg_url || null}
+                                                    branding={branding || undefined}
+                                                    isFlipped={true} // Force show back
+                                                    className="shadow-2xl"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <style jsx global>{`
+                                    @media print {
+                                        body * {
+                                            visibility: hidden;
+                                        }
+                                        .print-area, .print-area * {
+                                            visibility: visible;
+                                        }
+                                        .print-area {
+                                            position: absolute;
+                                            left: 0;
+                                            top: 0;
+                                            width: 100%;
+                                            height: 100%;
+                                            background: white;
+                                            display: flex;
+                                            justify-content: center;
+                                            align-items: center;
+                                        }
+                                    }
+                                `}</style>
+                            </div>
                         </motion.div>
                     </div>
                 )}
