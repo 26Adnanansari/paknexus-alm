@@ -30,7 +30,7 @@ export function Header() {
 
             {/* Mobile: Just show app name */}
             <div className="md:hidden flex-1">
-                <h1 className="text-lg font-semibold ml-12">PakAi Nexus</h1>
+                <h1 className="text-lg font-semibold ml-16">PakAi Nexus</h1>
             </div>
 
             {/* Actions */}

@@ -20,11 +20,11 @@ export function StatsCard({
 }: StatsCardProps) {
     return (
         <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-gray-600">{title}</p>
-                        <p className={cn("text-3xl font-bold mt-2", className)}>{value}</p>
+                        <p className={cn("text-2xl md:text-3xl font-bold mt-2", className)}>{value}</p>
                         {trend && (
                             <p className={cn(
                                 "text-sm mt-2",
@@ -34,7 +34,7 @@ export function StatsCard({
                             </p>
                         )}
                     </div>
-                    <div className={cn("p-3 rounded-full bg-gray-100", className)}>
+                    <div className={cn("p-2 md:p-3 rounded-full bg-gray-100", className)}>
                         {icon}
                     </div>
                 </div>

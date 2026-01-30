@@ -83,7 +83,7 @@ export function Sidebar() {
             {/* Mobile Sidebar (Sheet) */}
             <Sheet open={open} onOpenChange={setOpen}>
                 <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
-                    <Button variant="outline" size="icon">
+                    <Button variant="outline" size="icon" className="h-11 w-11 bg-white/90 backdrop-blur shadow-sm">
                         <Menu className="h-5 w-5" />
                     </Button>
                 </SheetTrigger>
