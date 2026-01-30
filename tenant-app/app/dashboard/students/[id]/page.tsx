@@ -30,12 +30,17 @@ export default function StudentProfilePage({ params }: { params: { id: string } 
     const [uploadingDoc, setUploadingDoc] = useState(false);
 
     useEffect(() => {
+        if (!id || id === 'undefined') {
+            router.push('/dashboard/students');
+            return;
+        }
         fetchStudent();
         fetchDocuments();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const fetchStudent = async () => {
+        if (!id || id === 'undefined') return;
         try {
             const res = await api.get(`/students/${id}`);
             setStudent(res.data);
@@ -147,8 +152,8 @@ export default function StudentProfilePage({ params }: { params: { id: string } 
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 pb-3 border-b-2 transition-colors whitespace-nowrap px-1 ${activeTab === tab.id
-                                ? 'border-blue-600 text-blue-600 font-semibold'
-                                : 'border-transparent text-slate-500 hover:text-slate-800'
+                            ? 'border-blue-600 text-blue-600 font-semibold'
+                            : 'border-transparent text-slate-500 hover:text-slate-800'
                             }`}
                     >
                         <tab.icon size={16} />

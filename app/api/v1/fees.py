@@ -67,6 +67,38 @@ async def set_class_fee(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to set class fee: {str(e)}")
 
+@router.get("/structure")
+async def list_all_structures(
+    class_name: Optional[str] = None,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """List all fee structures, optionally filtered by class."""
+    try:
+        async with pool.acquire() as conn:
+            # Ensure tables with columns
+            try:
+                await conn.execute("ALTER TABLE class_fee_structure ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'PKR'")
+            except:
+                pass
+            
+            query = """
+                SELECT s.*, h.head_name 
+                FROM class_fee_structure s
+                JOIN fee_heads h ON s.fee_head_id = h.head_id
+            """
+            params = []
+            if class_name:
+                query += " WHERE s.class_name = $1"
+                params.append(class_name)
+                
+            query += " ORDER BY s.class_name, h.head_name"
+            
+            rows = await conn.fetch(query, *params)
+            return [dict(r) for r in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch fee structures: {str(e)}")
+
 @router.get("/structure/{class_name}")
 async def get_class_structure(
     class_name: str,

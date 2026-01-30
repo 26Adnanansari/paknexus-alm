@@ -244,6 +244,31 @@ async def create_subject(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create subject: {str(e)}")
 
+@router.put("/subjects/{subject_id}", response_model=dict)
+async def update_subject(
+    subject_id: UUID,
+    sub: SubjectCreate,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                UPDATE subjects 
+                SET subject_name = $1, code = $2, department = $3, 
+                    credits = $4, is_optional = $5, description = $6
+                WHERE subject_id = $7
+                RETURNING *
+                """,
+                sub.subject_name, sub.code, sub.department, sub.credits, sub.is_optional, sub.description, subject_id
+            )
+            if not row:
+                raise HTTPException(status_code=404, detail="Subject not found")
+            return dict(row)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update subject: {str(e)}")
+
 @router.delete("/subjects/{subject_id}")
 async def delete_subject(
     subject_id: UUID,

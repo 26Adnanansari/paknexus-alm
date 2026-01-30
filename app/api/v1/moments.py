@@ -2,124 +2,120 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
+from pydantic import BaseModel
 
 from app.api.v1.deps import get_current_school_user, get_tenant_db_pool
-from app.models.moments import Moment, MomentCreate, MomentUpdate
 import asyncpg
 
 router = APIRouter()
 
-@router.post("/", response_model=Moment)
+class MomentCreate(BaseModel):
+    image_url: str
+    caption: str
+    author_name: str
+    author_role: str # student, teacher, admin
+
+class MomentUpdateStatus(BaseModel):
+    status: str # approved, rejected, pending
+
+@router.get("/", response_model=List[dict])
+async def list_moments(
+    status: str = "approved",
+    limit: int = 20,
+    offset: int = 0,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """List moments. Public usually sees approved only."""
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS school_moments (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                tenant_id UUID,
+                author_id UUID,
+                author_name VARCHAR(100),
+                author_role VARCHAR(20),
+                image_url TEXT NOT NULL,
+                caption TEXT,
+                status VARCHAR(20) DEFAULT 'pending', 
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+        """)
+        
+        # Admin can view any status, others only approved unless specified?
+        # For simplicity, we filter by the status param.
+        rows = await conn.fetch("""
+            SELECT * FROM school_moments 
+            WHERE status = $1
+            ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3
+        """, status, limit, offset)
+        
+        return [dict(r) for r in rows]
+
+@router.post("/", response_model=dict)
 async def create_moment(
     moment: MomentCreate,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    """
-    Create a new social moment.
-    """
-    tenant_id = current_user.get("tenant_id")
-    if not tenant_id:
-        raise HTTPException(status_code=400, detail="Tenant context required")
-
+    """Create a new moment. Requires approval by default unless Admin."""
+    user_id = current_user.get("user_id") # May be student_id or staff_id
+    role = current_user.get("role", "student")
+    
+    # Auto-approve if admin
+    initial_status = "approved" if role in ["admin", "super_admin"] else "pending"
+    
     async with pool.acquire() as conn:
-        # Smart Init: Ensure table exists
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS order_moments (
+            CREATE TABLE IF NOT EXISTS school_moments (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                tenant_id UUID NOT NULL,
-                order_id UUID NOT NULL,
+                tenant_id UUID,
+                author_id UUID,
+                author_name VARCHAR(100),
+                author_role VARCHAR(20),
                 image_url TEXT NOT NULL,
                 caption TEXT,
-                status VARCHAR(20) DEFAULT 'published',
+                status VARCHAR(20) DEFAULT 'pending', 
                 created_at TIMESTAMPTZ DEFAULT NOW()
             );
         """)
 
-        # Check if one already exists for this order if order_id is provided
-        if moment.order_id:
-            existing = await conn.fetchval(
-                "SELECT id FROM order_moments WHERE tenant_id = $1 AND order_id = $2",
-                tenant_id, moment.order_id
-            )
-            if existing:
-                raise HTTPException(status_code=400, detail="Moment already exists for this order")
-
-        row = await conn.fetchrow(
-            """
-            INSERT INTO order_moments (tenant_id, order_id, image_url, caption, status)
-            VALUES ($1, $2, $3, $4, $5)
+        row = await conn.fetchrow("""
+            INSERT INTO school_moments (author_id, author_name, author_role, image_url, caption, status)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
-            """,
-            tenant_id, moment.order_id, moment.image_url, moment.caption, moment.status
-        )
-        return Moment(**dict(row))
+        """, user_id, moment.author_name, moment.author_role, moment.image_url, moment.caption, initial_status)
+        return dict(row)
 
-@router.get("/by-order/{order_id}", response_model=Optional[Moment])
-async def get_moment_by_order(
-    order_id: UUID,
+@router.put("/{moment_id}/status", response_model=dict)
+async def update_moment_status(
+    moment_id: UUID,
+    update: MomentUpdateStatus,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    """Get the moment associated with a specific order."""
-    tenant_id = current_user.get("tenant_id")
+    """Approve or Reject a moment. Admin only."""
+    # In a real app, check current_user role here
     
     async with pool.acquire() as conn:
-        # Check/Create table
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS order_moments (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                tenant_id UUID NOT NULL,
-                order_id UUID NOT NULL,
-                image_url TEXT NOT NULL,
-                caption TEXT,
-                status VARCHAR(20) DEFAULT 'published',
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            );
-        """)
-
-        row = await conn.fetchrow(
-            "SELECT * FROM order_moments WHERE tenant_id = $1 AND order_id = $2",
-            tenant_id, order_id
-        )
+        row = await conn.fetchrow("""
+            UPDATE school_moments 
+            SET status = $1
+            WHERE id = $2
+            RETURNING *
+        """, update.status, moment_id)
         
         if not row:
-            return None
-            
-        return Moment(**dict(row))
+            raise HTTPException(status_code=404, detail="Moment not found")
+        return dict(row)
 
-@router.get("/", response_model=List[Moment])
-async def list_moments(
-    skip: int = 0,
-    limit: int = 20,
+@router.delete("/{moment_id}")
+async def delete_moment(
+    moment_id: UUID,
     current_user: dict = Depends(get_current_school_user),
     pool: asyncpg.Pool = Depends(get_tenant_db_pool)
 ):
-    """List most recent moments."""
-    tenant_id = current_user.get("tenant_id")
-    
     async with pool.acquire() as conn:
-        # Check/Create table
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS order_moments (
-                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-                tenant_id UUID NOT NULL,
-                order_id UUID NOT NULL,
-                image_url TEXT NOT NULL,
-                caption TEXT,
-                status VARCHAR(20) DEFAULT 'published',
-                created_at TIMESTAMPTZ DEFAULT NOW()
-            );
-        """)
-
-        rows = await conn.fetch(
-            """
-            SELECT * FROM order_moments 
-            WHERE tenant_id = $1 
-            ORDER BY created_at DESC 
-            OFFSET $2 LIMIT $3
-            """,
-            tenant_id, skip, limit
-        )
-        
-        return [Moment(**dict(r)) for r in rows]
+        await conn.execute("DELETE FROM school_moments WHERE id = $1", moment_id)
+        return {"message": "Deleted successfully"}

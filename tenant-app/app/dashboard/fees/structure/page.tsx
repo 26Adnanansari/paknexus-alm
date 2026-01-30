@@ -78,25 +78,9 @@ export default function FeeStructurePage() {
             const uniqueClasses = Array.from(new Set(fetchedClasses)) as string[];
             setClasses(uniqueClasses.length > 0 ? uniqueClasses : ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5']);
 
-            // Fetch structures for all classes
-            const allStructures: FeeStructure[] = [];
-            // Use fetched classes, or default if empty
-            const classesToFetch = uniqueClasses.length > 0 ? uniqueClasses : ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5'];
-
-            // Parallel fetch optimization? Maybe limit concurrency?
-            // For now, sequential to avoid rate limits
-            for (const cls of classesToFetch) {
-                try {
-                    const res = await api.get(`/fees/structure/${cls}`);
-                    if (res.data) {
-                        allStructures.push(...res.data);
-                    }
-                } catch (e) {
-                    // Class might not have structure yet
-                }
-            }
-
-            setStructures(allStructures);
+            // Fetch structures for all classes in one go
+            const structuresRes = await api.get('/fees/structure');
+            setStructures(structuresRes.data);
         } catch (error) {
             console.error(error);
             toast.error('Failed to load fee data');

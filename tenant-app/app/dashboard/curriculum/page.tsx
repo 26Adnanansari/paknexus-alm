@@ -23,6 +23,10 @@ export default function CurriculumPage() {
     const [isSubjectModalOpen, setIsSubjectModalOpen] = useState(false);
     const [isAllocationModalOpen, setIsAllocationModalOpen] = useState(false);
 
+    // Edit Modes
+    const [editingClassId, setEditingClassId] = useState<string | null>(null);
+    const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
+
     // Forms State
     const [newClass, setNewClass] = useState({ class_name: '', section: '', class_teacher_id: '', room_number: '', capacity: 30, academic_year: '2024-2025' });
     const [newSubject, setNewSubject] = useState({ subject_name: '', code: '', department: '', credits: 1.0, is_optional: false });
@@ -61,15 +65,36 @@ export default function CurriculumPage() {
         e.preventDefault();
         try {
             const payload = { ...newClass, class_teacher_id: newClass.class_teacher_id || null };
-            await api.post('/curriculum/classes', payload);
-            toast.success("Class created successfully");
+
+            if (editingClassId) {
+                await api.put(`/curriculum/classes/${editingClassId}`, payload);
+                toast.success("Class updated successfully");
+            } else {
+                await api.post('/curriculum/classes', payload);
+                toast.success("Class created successfully");
+            }
+
             setIsClassModalOpen(false);
+            setEditingClassId(null);
             setNewClass({ class_name: '', section: '', class_teacher_id: '', room_number: '', capacity: 30, academic_year: '2024-2025' });
             fetchData();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to create class");
+            toast.error("Failed to save class");
         }
+    };
+
+    const openEditClass = (cls: any) => {
+        setNewClass({
+            class_name: cls.class_name,
+            section: cls.section || '',
+            class_teacher_id: cls.class_teacher_id || '',
+            room_number: cls.room_number || '',
+            capacity: cls.capacity || 30,
+            academic_year: cls.academic_year || '2024-2025'
+        });
+        setEditingClassId(cls.class_id);
+        setIsClassModalOpen(true);
     };
 
     const handleDeleteClass = async (id: string) => {
@@ -85,12 +110,31 @@ export default function CurriculumPage() {
     const handleAddSubject = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/curriculum/subjects', newSubject);
-            toast.success("Subject created successfully");
+            if (editingSubjectId) {
+                await api.put(`/curriculum/subjects/${editingSubjectId}`, newSubject);
+                toast.success("Subject updated successfully");
+            } else {
+                await api.post('/curriculum/subjects', newSubject);
+                toast.success("Subject created successfully");
+            }
+
             setIsSubjectModalOpen(false);
+            setEditingSubjectId(null);
             setNewSubject({ subject_name: '', code: '', department: '', credits: 1.0, is_optional: false });
             fetchData();
-        } catch (error) { toast.error("Failed to create subject"); }
+        } catch (error) { toast.error("Failed to save subject"); }
+    };
+
+    const openEditSubject = (sub: any) => {
+        setNewSubject({
+            subject_name: sub.subject_name,
+            code: sub.code || '',
+            department: sub.department || '',
+            credits: sub.credits || 1.0,
+            is_optional: sub.is_optional || false
+        });
+        setEditingSubjectId(sub.subject_id);
+        setIsSubjectModalOpen(true);
     };
 
     const handleDeleteSubject = async (id: string) => {
@@ -213,6 +257,9 @@ export default function CurriculumPage() {
                                             <Button onClick={() => openAllocationModal(cls)} variant="outline" size="sm" className="h-8 text-xs gap-1 border-blue-200 text-blue-700 hover:bg-blue-50">
                                                 <Layers className="h-3 w-3" /> Subjects
                                             </Button>
+                                            <button onClick={() => openEditClass(cls)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg">
+                                                <Edit size={16} />
+                                            </button>
                                             <button onClick={() => handleDeleteClass(cls.class_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
                                                 <Trash2 size={16} />
                                             </button>
@@ -249,9 +296,14 @@ export default function CurriculumPage() {
                                     <td className="px-6 py-4 text-sm text-slate-600">{sub.department || '-'}</td>
                                     <td className="px-6 py-4 text-sm text-slate-600">{sub.credits}</td>
                                     <td className="px-6 py-4 text-right">
-                                        <button onClick={() => handleDeleteSubject(sub.subject_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={() => openEditSubject(sub)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg">
+                                                <Edit size={16} />
+                                            </button>
+                                            <button onClick={() => handleDeleteSubject(sub.subject_id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -266,7 +318,7 @@ export default function CurriculumPage() {
                 {isClassModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl">
-                            <h2 className="text-xl font-bold mb-4">Add New Class</h2>
+                            <h2 className="text-xl font-bold mb-4">{editingClassId ? 'Edit Class' : 'Add New Class'}</h2>
                             <form onSubmit={handleAddClass} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -307,7 +359,7 @@ export default function CurriculumPage() {
                 {isSubjectModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl">
-                            <h2 className="text-xl font-bold mb-4">Add New Subject</h2>
+                            <h2 className="text-xl font-bold mb-4">{editingSubjectId ? 'Edit Subject' : 'Add New Subject'}</h2>
                             <form onSubmit={handleAddSubject} className="space-y-4">
                                 <div>
                                     <label className="text-sm font-semibold text-slate-700">Subject Name</label>
