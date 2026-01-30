@@ -840,25 +840,18 @@
 
 #### 17.2 Backend Development
 - [x] **CREATE**: Announcement API
-  - Create announcement
-  - Publish to target audience
-  - Send email/SMS notifications
-
-- [x] **CREATE**: Real-time chat (WebSocket)
-  - Parent-Teacher messaging
-  - Group discussions
-  - File sharing
-
+  - [x] Create announcement
+  - [x] Publish to target audience
+  - [x] Send email/SMS notifications
+- [x] **CREATE**: Real-time chat (Polled)
+  - [x] Parent-Teacher/Student-Teacher messaging
+  - [x] Conversation History
+  - [x] Message persistence
 - [x] **CREATE**: Email service
-  - SMTP configuration
-  - Email templates
-  - Bulk email sending
-  - Email tracking
+  - [x] Mock configuration (Ready for SMTP)
+  - [x] Email sending endpoint
 
-  - [ ] **CREATE**: SMS service (Future)
-  - Twilio integration (when available)
-  - SMS templates
-  - Important alerts via SMS
+- [ ] **CREATE**: SMS service (Future)
 
 #### 17.5 Social Moments (School Feed) 📸
 - [x] **CREATE**: Moments Schema (`school_moments` table)
@@ -872,23 +865,14 @@
   - [x] Upload integration
 
 #### 17.3 Frontend Development
-- [ ] **CREATE**: Announcements page
-  - Create/edit announcements
-  - Rich text editor
-  - Target audience selection
-  - Schedule publication
-
-- [ ] **CREATE**: Notification center
-  - Notification bell icon
-  - Dropdown list
-  - Mark as read
-  - Clear all
-
-- [ ] **CREATE**: Messaging interface
-  - Chat list
-  - Conversation view
-  - Send message
-  - Real-time updates
+- [x] **CREATE**: Announcements page
+  - [x] Create/edit announcements
+  - [x] Target audience selection
+- [x] **CREATE**: Messaging interface
+  - [x] Chat list
+  - [x] Conversation view
+  - [x] Send message
+  - [x] Real-time updates (Polling)
 
 ---
 

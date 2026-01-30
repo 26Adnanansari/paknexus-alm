@@ -20,7 +20,10 @@ interface Announcement {
     created_at: string;
 }
 
+import ChatWindow from '@/components/dashboard/communication/ChatWindow';
+
 export default function CommunicationPage() {
+    const [view, setView] = useState<'announcements' | 'chat'>('announcements');
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -35,8 +38,8 @@ export default function CommunicationPage() {
     });
 
     useEffect(() => {
-        fetchAnnouncements();
-    }, []);
+        if (view === 'announcements') fetchAnnouncements();
+    }, [view]);
 
     const fetchAnnouncements = async () => {
         setLoading(true);
@@ -81,7 +84,7 @@ export default function CommunicationPage() {
 
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-10 pb-24">
-            <div className="max-w-4xl mx-auto space-y-8">
+            <div className="max-w-5xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -89,73 +92,97 @@ export default function CommunicationPage() {
                             <Megaphone className="text-purple-600" size={32} />
                             Communication Hub
                         </h1>
-                        <p className="text-slate-500 font-medium mt-1">Broadcast announcements to students, teachers, and parents</p>
+                        <p className="text-slate-500 font-medium mt-1">Broadcast announcements or chat directly</p>
                     </div>
-                    <button
-                        onClick={() => setIsCreateOpen(true)}
-                        className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-200"
-                    >
-                        <Send size={20} />
-                        New Announcement
-                    </button>
+
+                    <div className="flex gap-2">
+                        <div className="bg-white p-1 rounded-xl border border-slate-200 flex">
+                            <button
+                                onClick={() => setView('announcements')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'announcements' ? 'bg-purple-100 text-purple-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                Announcements
+                            </button>
+                            <button
+                                onClick={() => setView('chat')}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${view === 'chat' ? 'bg-purple-100 text-purple-700' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                                Direct Chat
+                            </button>
+                        </div>
+                        {view === 'announcements' && (
+                            <button
+                                onClick={() => setIsCreateOpen(true)}
+                                className="bg-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-purple-200"
+                            >
+                                <Send size={20} />
+                                New Announcement
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* List */}
-                {loading ? (
-                    <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full" /></div>
-                ) : announcements.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed">
-                        <MessageSquare className="mx-auto text-slate-300 mb-4" size={48} />
-                        <h3 className="text-xl font-bold text-slate-400">No announcements yet</h3>
-                    </div>
+                {/* View Switch */}
+                {view === 'chat' ? (
+                    <ChatWindow />
                 ) : (
-                    <div className="space-y-4">
-                        {announcements.map(ann => (
-                            <motion.div
-                                key={ann.announcement_id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`bg-white p-6 rounded-3xl border shadow-sm relative overflow-hidden group
-                                    ${ann.is_urgent ? 'border-red-100 bg-red-50/10' : 'border-slate-200'}
-                                `}
-                            >
-                                {ann.is_urgent && (
-                                    <div className="absolute top-0 right-0 p-3">
-                                        <span className="bg-red-100 text-red-600 text-xs font-black uppercase px-2 py-1 rounded-lg flex items-center gap-1">
-                                            <Bell size={12} fill="currentColor" /> Urgent
-                                        </span>
-                                    </div>
-                                )}
-
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex gap-2 mb-2">
-                                        {ann.target_audiences.map(role => (
-                                            <span key={role} className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-lg uppercase">
-                                                {role}
+                    /* Announcement List */
+                    loading ? (
+                        <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full" /></div>
+                    ) : announcements.length === 0 ? (
+                        <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed">
+                            <MessageSquare className="mx-auto text-slate-300 mb-4" size={48} />
+                            <h3 className="text-xl font-bold text-slate-400">No announcements yet</h3>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {announcements.map(ann => (
+                                <motion.div
+                                    key={ann.announcement_id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`bg-white p-6 rounded-3xl border shadow-sm relative overflow-hidden group
+                                        ${ann.is_urgent ? 'border-red-100 bg-red-50/10' : 'border-slate-200'}
+                                    `}
+                                >
+                                    {ann.is_urgent && (
+                                        <div className="absolute top-0 right-0 p-3">
+                                            <span className="bg-red-100 text-red-600 text-xs font-black uppercase px-2 py-1 rounded-lg flex items-center gap-1">
+                                                <Bell size={12} fill="currentColor" /> Urgent
                                             </span>
-                                        ))}
-                                    </div>
-                                    <button
-                                        onClick={() => handleDelete(ann.announcement_id)}
-                                        className="text-slate-300 hover:text-red-500 transition-colors"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </div>
+                                        </div>
+                                    )}
 
-                                <h3 className="text-xl font-bold text-slate-900 mb-2">{ann.title}</h3>
-                                <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{ann.content}</p>
-
-                                <div className="mt-6 flex gap-4 text-xs font-bold text-slate-400 border-t pt-4 border-slate-100">
-                                    <span>{new Date(ann.created_at).toLocaleString()}</span>
-                                    <div className="flex gap-2">
-                                        {ann.send_email && <div className="flex items-center gap-1 text-purple-600"><Mail size={14} /> Email Sent</div>}
-                                        {ann.send_sms && <div className="flex items-center gap-1 text-blue-600"><MessageCircle size={14} /> SMS Sent</div>}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex gap-2 mb-2">
+                                            {ann.target_audiences.map(role => (
+                                                <span key={role} className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-lg uppercase">
+                                                    {role}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <button
+                                            onClick={() => handleDelete(ann.announcement_id)}
+                                            className="text-slate-300 hover:text-red-500 transition-colors"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
+
+                                    <h3 className="text-xl font-bold text-slate-900 mb-2">{ann.title}</h3>
+                                    <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{ann.content}</p>
+
+                                    <div className="mt-6 flex gap-4 text-xs font-bold text-slate-400 border-t pt-4 border-slate-100">
+                                        <span>{new Date(ann.created_at).toLocaleString()}</span>
+                                        <div className="flex gap-2">
+                                            {ann.send_email && <div className="flex items-center gap-1 text-purple-600"><Mail size={14} /> Email Sent</div>}
+                                            {ann.send_sms && <div className="flex items-center gap-1 text-blue-600"><MessageCircle size={14} /> SMS Sent</div>}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )
                 )}
             </div>
 
