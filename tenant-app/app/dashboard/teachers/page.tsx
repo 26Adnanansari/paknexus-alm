@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Plus, User, Mail, Phone, School, Briefcase, MapPin, GraduationCap, DollarSign, Edit, Trash2, X, Loader2, CreditCard, Printer } from 'lucide-react';
@@ -268,9 +269,9 @@ export default function StaffPage() {
 
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                                    <span className="cursor-pointer">
+                                    <Link href={`/dashboard/teachers/${staff.staff_id}`} className="hover:underline">
                                         {staff.full_name}
-                                    </span>
+                                    </Link>
                                 </h3>
                                 <p className="text-sm text-slate-500 font-medium">{staff.designation || 'No Designation'}</p>
                                 {staff.department && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><School size={12} /> {staff.department}</p>}

@@ -180,6 +180,30 @@ async def get_class_timetable(
             "allocations": [dict(r) for r in allocs]
         }
 
+@router.get("/allocations/teacher/{teacher_id}")
+async def get_teacher_timetable(
+    teacher_id: UUID, 
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """Get timetable for a specific teacher"""
+    async with pool.acquire() as conn:
+        # Fetch allocations where teacher_id matches
+        allocs = await conn.fetch("""
+             SELECT t.*, s.subject_name, c.class_name
+             FROM timetable_allocations t
+             LEFT JOIN subjects s ON t.subject_id = s.subject_id
+             LEFT JOIN classes c ON t.class_id = c.class_id
+             WHERE t.teacher_id = $1
+        """, teacher_id)
+        
+        periods = await conn.fetch("SELECT * FROM school_periods ORDER BY order_index")
+        
+        return {
+            "periods": [dict(r) for r in periods],
+            "allocations": [dict(r) for r in allocs]
+        }
+
 @router.post("/allocations")
 async def save_allocation(
     data: AllocationCreate,

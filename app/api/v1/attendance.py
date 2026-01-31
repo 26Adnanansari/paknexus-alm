@@ -327,3 +327,86 @@ async def get_session_records(
             ORDER BY s.full_name
         """, session_id)
         return [dict(row) for row in rows]
+
+# --- Staff Attendance Extensions ---
+
+class StaffAttendanceCreate(BaseModel):
+    staff_id: UUID
+    date: date
+    status: str = Field(..., pattern="^(present|absent|late|leave)$")
+    check_in: Optional[str] = None # HH:MM
+    check_out: Optional[str] = None # HH:MM
+    remarks: Optional[str] = None
+
+@router.post("/staff/mark")
+async def mark_staff_attendance(
+    data: StaffAttendanceCreate,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """Mark attendance for a staff member"""
+    async with pool.acquire() as conn:
+        # Ensure table exists (Lazy Init)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS staff_attendance (
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                staff_id UUID NOT NULL REFERENCES staff(staff_id) ON DELETE CASCADE,
+                date DATE NOT NULL,
+                status VARCHAR(20) NOT NULL,
+                check_in TIME,
+                check_out TIME,
+                remarks TEXT,
+                marked_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(staff_id, date)
+            );
+            CREATE INDEX IF NOT EXISTS idx_staff_att_date ON staff_attendance(date);
+        """)
+
+        # Upsert
+        check_in_time = datetime.strptime(data.check_in, "%H:%M").time() if data.check_in else None
+        check_out_time = datetime.strptime(data.check_out, "%H:%M").time() if data.check_out else None
+
+        await conn.execute("""
+            INSERT INTO staff_attendance (staff_id, date, status, check_in, check_out, remarks)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (staff_id, date)
+            DO UPDATE SET 
+                status = EXCLUDED.status,
+                check_in = COALESCE(EXCLUDED.check_in, staff_attendance.check_in),
+                check_out = COALESCE(EXCLUDED.check_out, staff_attendance.check_out),
+                remarks = EXCLUDED.remarks,
+                marked_at = NOW()
+        """, data.staff_id, data.date, data.status, check_in_time, check_out_time, data.remarks)
+        
+        return {"success": True}
+
+@router.get("/staff/{staff_id}/history")
+async def get_staff_attendance_history(
+    staff_id: UUID,
+    limit: int = 30,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """Get attendance history for a staff member"""
+    async with pool.acquire() as conn:
+        # Check if table exists to avoid error on empty system
+        exists = await conn.fetchval("SELECT to_regclass('staff_attendance')")
+        if not exists:
+            return []
+
+        rows = await conn.fetch("""
+            SELECT * FROM staff_attendance 
+            WHERE staff_id = $1 
+            ORDER BY date DESC 
+            LIMIT $2
+        """, staff_id, limit)
+        
+        # Convert time objects to strings
+        results = []
+        for row in rows:
+            d = dict(row)
+            d['check_in'] = str(d['check_in']) if d['check_in'] else None
+            d['check_out'] = str(d['check_out']) if d['check_out'] else None
+            results.append(d)
+            
+        return results

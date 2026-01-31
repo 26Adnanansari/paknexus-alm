@@ -5,7 +5,7 @@ import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
     User, FileText, Calendar, DollarSign, GraduationCap,
-    Upload, Trash2, ExternalLink, ArrowLeft, Loader2, Briefcase, Mail, Phone, MapPin, School
+    Upload, Trash2, ExternalLink, ArrowLeft, Loader2, Briefcase, Mail, Phone, MapPin, School, Plus, Download, Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -22,6 +22,22 @@ export default function StaffProfilePage({ params }: { params: { id: string } })
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
 
+    // Tab Data States
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [payrollHistory, setPayrollHistory] = useState<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [attendanceHistory, setAttendanceHistory] = useState<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [timetable, setTimetable] = useState<any>(null);
+    const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
+    const [payrollForm, setPayrollForm] = useState({
+        amount: '',
+        transaction_date: new Date().toISOString().split('T')[0],
+        type: 'salary',
+        payment_method: 'cash',
+        description: ''
+    });
+
     useEffect(() => {
         fetchStaff();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -29,21 +45,13 @@ export default function StaffProfilePage({ params }: { params: { id: string } })
 
     const fetchStaff = async () => {
         try {
-            // We need a specific GET endpoint for single staff. 
-            // Currently list_staff returns all. I might need to add GET /{id} or filter list.
-            // Let's assume GET /staff returns list, but maybe we can fetch all and find one, OR add GET /staff/{id}
-            // Ideally backend should have GET /staff/{id}. 
-            // Wait, looking at staff.py, there is NO GET /{id} endpoint!
-            // I must add it to backend first.
-
-            // For now, I'll fetch list and find (inefficient but works for MVP if list is small)
-            // Or better, I will update staff.py to include GET /{id} in next step.
-            // Let's write client assuming the endpoint exists or will exist.
-            const res = await api.get(`/staff`);
-            const found = res.data.find((s: any) => s.staff_id === id);
-
-            if (found) {
-                setStaff(found);
+            const res = await api.get(`/staff/${id}`);
+            if (res.data) {
+                setStaff(res.data);
+                // Fetch other data in parallel or sequence
+                fetchPayroll();
+                fetchTimetable();
+                fetchAttendance();
             } else {
                 toast.error("Staff member not found");
                 router.push('/dashboard/teachers');
@@ -57,8 +65,57 @@ export default function StaffProfilePage({ params }: { params: { id: string } })
         }
     };
 
+    const fetchPayroll = async () => {
+        try {
+            const res = await api.get(`/staff/${id}/payroll`);
+            setPayrollHistory(res.data);
+        } catch (error) {
+            console.error("Payroll fetch error:", error);
+        }
+    };
+
+    const fetchTimetable = async () => {
+        try {
+            const res = await api.get(`/timetable/allocations/teacher/${id}`);
+            setTimetable(res.data);
+        } catch (error) {
+            console.error("Timetable fetch error:", error);
+        }
+    };
+
+    const fetchAttendance = async () => {
+        try {
+            const res = await api.get(`/attendance/staff/${id}/history`);
+            setAttendanceHistory(res.data);
+        } catch (error) {
+            console.error("Attendance error:", error);
+            setAttendanceHistory([]);
+        }
+    };
+
+    const handlePayrollSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await api.post(`/staff/${id}/payroll`, {
+                ...payrollForm,
+                amount: parseFloat(payrollForm.amount)
+            });
+            toast.success("Payroll transaction recorded");
+            setIsPayrollModalOpen(false);
+            fetchPayroll();
+            setPayrollForm({ ...payrollForm, amount: '', description: '' });
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to record transaction");
+        }
+    };
+
     if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-600" /></div>;
     if (!staff) return null;
+
+    // Derived State for Classes Tab
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const uniqueClasses = timetable?.allocations ? Array.from(new Set(timetable.allocations.map((a: any) => a.class_name))).filter(Boolean) : [];
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -101,6 +158,13 @@ export default function StaffProfilePage({ params }: { params: { id: string } })
                         <p className="flex items-center gap-2 justify-center md:justify-start"><Calendar size={14} /> Joined: {staff.join_date}</p>
                     </div>
                 </div>
+
+                <div className="flex flex-col gap-2">
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center min-w-[140px]">
+                        <span className="text-xs font-bold text-slate-400 uppercase">Base Salary</span>
+                        <div className="text-xl font-black text-slate-900 mt-1">${staff.salary_amount?.toLocaleString() || '0'}</div>
+                    </div>
+                </div>
             </div>
 
             {/* Navigation Tabs */}
@@ -115,8 +179,8 @@ export default function StaffProfilePage({ params }: { params: { id: string } })
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 pb-3 border-b-2 transition-colors whitespace-nowrap px-1 ${activeTab === tab.id
-                                ? 'border-blue-600 text-blue-600 font-semibold'
-                                : 'border-transparent text-slate-500 hover:text-slate-800'
+                            ? 'border-blue-600 text-blue-600 font-semibold'
+                            : 'border-transparent text-slate-500 hover:text-slate-800'
                             }`}
                     >
                         <tab.icon size={16} />
@@ -181,31 +245,265 @@ export default function StaffProfilePage({ params }: { params: { id: string } })
                     </div>
                 )}
 
+                {activeTab === 'attendance' && (
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-slate-900">Attendance History</h3>
+                        </div>
+                        {attendanceHistory && attendanceHistory.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                                        <tr>
+                                            <th className="px-6 py-4">Date</th>
+                                            <th className="px-6 py-4">Status</th>
+                                            <th className="px-6 py-4">Check In</th>
+                                            <th className="px-6 py-4">Check Out</th>
+                                            <th className="px-6 py-4">Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                        {attendanceHistory.map((att: any, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                                <td className="px-6 py-4 font-medium text-slate-900">{new Date(att.date).toLocaleDateString()}</td>
+                                                <td className="px-6 py-4 capitalize">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${att.status === 'present' ? 'bg-green-100 text-green-700' :
+                                                        att.status === 'absent' ? 'bg-red-100 text-red-700' :
+                                                            att.status === 'late' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                                                        }`}>
+                                                        {att.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-600">{att.check_in || '-'}</td>
+                                                <td className="px-6 py-4 text-slate-600">{att.check_out || '-'}</td>
+                                                <td className="px-6 py-4 text-slate-500">{att.remarks || '-'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="p-12 text-center text-slate-500">
+                                <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                <p>No attendance records found.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {activeTab === 'classes' && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-                        <School className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                        <h3 className="text-slate-900 font-medium">Assigned Classes</h3>
-                        <p className="text-slate-500">Class assignments will appear here once Academic module is active.</p>
+                    <div className="space-y-6">
+                        {uniqueClasses.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {uniqueClasses.map((className: any, idx) => (
+                                    <div key={idx} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-md transition-shadow">
+                                        <div className="h-12 w-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-4">
+                                            <School size={24} />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-slate-900">{className}</h3>
+                                        <p className="text-sm text-slate-500">Assigned Teacher</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+                                <School className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                <h3 className="text-slate-900 font-medium">No Classes Assigned</h3>
+                                <p className="text-slate-500">Assign this teacher to classes in the Timetable module.</p>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {activeTab === 'timetable' && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-                        <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                        <h3 className="text-slate-900 font-medium">Weekly Timetable</h3>
-                        <p className="text-slate-500">Timetable schedule will appear here.</p>
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="p-6 border-b border-slate-100">
+                            <h3 className="text-lg font-bold text-slate-900">Weekly Schedule</h3>
+                        </div>
+                        {timetable && timetable.allocations.length > 0 ? (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                                        <tr>
+                                            <th className="px-6 py-4">Day</th>
+                                            <th className="px-6 py-4">Period</th>
+                                            <th className="px-6 py-4">Class</th>
+                                            <th className="px-6 py-4">Subject</th>
+                                            <th className="px-6 py-4">Room</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                        {timetable.allocations.map((alloc: any) => {
+                                            // Find Period Name
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            const period = timetable.periods.find((p: any) => p.period_id === alloc.period_id);
+                                            return (
+                                                <tr key={alloc.allocation_id} className="hover:bg-slate-50">
+                                                    <td className="px-6 py-4 font-medium text-slate-900">{alloc.day_of_week}</td>
+                                                    <td className="px-6 py-4 text-slate-600">
+                                                        {period ? `${period.name} (${period.start_time.slice(0, 5)} - ${period.end_time.slice(0, 5)})` : '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4 font-medium text-blue-600">{alloc.class_name}</td>
+                                                    <td className="px-6 py-4">{alloc.subject_name || '-'}</td>
+                                                    <td className="px-6 py-4">{alloc.room_number || '-'}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="p-12 text-center text-slate-500">
+                                <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                <p>No timetable allocations found.</p>
+                            </div>
+                        )}
                     </div>
                 )}
 
                 {activeTab === 'payroll' && (
-                    <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-                        <DollarSign className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-                        <h3 className="text-slate-900 font-medium">Payroll Information</h3>
-                        <p className="text-slate-500">Salary history and payslips will appear here.</p>
-                        <p className="text-xs text-slate-400 mt-2">Current Basic: {staff.salary_amount}</p>
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-lg font-bold text-slate-900">Payment History</h3>
+                            <Button onClick={() => setIsPayrollModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                                <Plus size={16} className="mr-2" /> Record Payment
+                            </Button>
+                        </div>
+
+                        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                            {payrollHistory.length > 0 ? (
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-100">
+                                        <tr>
+                                            <th className="px-6 py-4">Date</th>
+                                            <th className="px-6 py-4">Type</th>
+                                            <th className="px-6 py-4">Description</th>
+                                            <th className="px-6 py-4">Method</th>
+                                            <th className="px-6 py-4 text-right">Amount</th>
+                                            <th className="px-6 py-4 text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                        {payrollHistory.map((txn: any) => (
+                                            <tr key={txn.transaction_id} className="hover:bg-slate-50">
+                                                <td className="px-6 py-4">{new Date(txn.transaction_date).toLocaleDateString()}</td>
+                                                <td className="px-6 py-4 capitalize">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${txn.type === 'salary' ? 'bg-green-100 text-green-700' :
+                                                        txn.type === 'deduction' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                        {txn.type}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-500">{txn.description || '-'}</td>
+                                                <td className="px-6 py-4 capitalize">{txn.payment_method}</td>
+                                                <td className="px-6 py-4 text-right font-mono font-bold">${parseFloat(txn.amount).toLocaleString()}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-900">
+                                                        <Printer size={14} />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            ) : (
+                                <div className="p-12 text-center text-slate-500">
+                                    <DollarSign className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                                    <p>No payment history found.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
+
+            {/* Payroll Modal */}
+            <AnimatePresence>
+                {isPayrollModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => setIsPayrollModalOpen(false)}
+                        />
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 overflow-hidden"
+                        >
+                            <h3 className="text-lg font-bold text-slate-900 mb-4">Record Payroll Transaction</h3>
+                            <form onSubmit={handlePayrollSubmit} className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Amount</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-mono"
+                                        placeholder="0.00"
+                                        value={payrollForm.amount}
+                                        onChange={e => setPayrollForm({ ...payrollForm, amount: e.target.value })}
+                                    />
+                                    <p className="text-xs text-slate-400 mt-1">Suggested from Base Salary: {staff.salary_amount}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">Type</label>
+                                        <select
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none bg-white"
+                                            value={payrollForm.type}
+                                            onChange={e => setPayrollForm({ ...payrollForm, type: e.target.value })}
+                                        >
+                                            <option value="salary">Salary</option>
+                                            <option value="bonus">Bonus</option>
+                                            <option value="advance">Advance</option>
+                                            <option value="deduction">Deduction</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">Date</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none"
+                                            value={payrollForm.transaction_date}
+                                            onChange={e => setPayrollForm({ ...payrollForm, transaction_date: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Description</label>
+                                    <input
+                                        type="text"
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                        placeholder="Note (optional)"
+                                        value={payrollForm.description}
+                                        onChange={e => setPayrollForm({ ...payrollForm, description: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700">Payment Method</label>
+                                    <select
+                                        className="w-full px-4 py-2 border border-slate-200 rounded-lg outline-none bg-white"
+                                        value={payrollForm.payment_method}
+                                        onChange={e => setPayrollForm({ ...payrollForm, payment_method: e.target.value })}
+                                    >
+                                        <option value="cash">Cash</option>
+                                        <option value="bank_transfer">Bank Transfer</option>
+                                        <option value="cheque">Cheque</option>
+                                    </select>
+                                </div>
+                                <div className="pt-4 flex justify-end gap-3">
+                                    <Button type="button" variant="outline" onClick={() => setIsPayrollModalOpen(false)}>Cancel</Button>
+                                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Save Transaction</Button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

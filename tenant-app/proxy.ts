@@ -7,10 +7,8 @@ export default auth((req) => {
     if (isOnDashboard) {
         if (isLoggedIn) return
         return Response.redirect(new URL("/login", req.nextUrl))
-    } else if (isLoggedIn && req.nextUrl.pathname === "/login") {
-        // Redirect to dashboard if already logged in and trying to access login
-        return Response.redirect(new URL("/dashboard", req.nextUrl))
     }
+    // Removed auto-redirect from /login to /dashboard to prevent infinite loops when session is stale
 })
 
 export const config = {

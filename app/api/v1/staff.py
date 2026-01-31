@@ -220,6 +220,19 @@ async def create_staff(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create staff: {str(e)}")
 
+@router.get("/{staff_id}", response_model=StaffResponse)
+async def get_staff(
+    staff_id: UUID,
+    current_user: dict = Depends(get_current_school_user),
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool)
+):
+    """Get a single staff member."""
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM staff WHERE staff_id = $1", staff_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Staff member not found")
+        return dict(row)
+
 @router.put("/{staff_id}", response_model=StaffResponse)
 async def update_staff(
     staff_id: UUID,
@@ -272,3 +285,78 @@ async def delete_staff(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete staff: {str(e)}")
+
+# --- Payroll Module ---
+
+class PayrollTransactionCreate(BaseModel):
+    amount: float
+    transaction_date: date
+    type: str = 'salary' # salary, bonus, deduction, advance
+    description: Optional[str] = None
+    payment_method: str = 'cash'
+
+@router.get("/{staff_id}/payroll")
+async def get_staff_payroll(
+    staff_id: UUID,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """Get payroll history for a staff member"""
+    async with pool.acquire() as conn:
+        # Auto-init payroll table
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS payroll_transactions (
+                transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                staff_id UUID REFERENCES staff(staff_id),
+                amount DECIMAL(10,2) NOT NULL,
+                transaction_date DATE NOT NULL,
+                type VARCHAR(20) DEFAULT 'salary',
+                description TEXT,
+                payment_method VARCHAR(20) DEFAULT 'cash',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_payroll_staff ON payroll_transactions(staff_id);
+        """)
+
+        rows = await conn.fetch("""
+            SELECT * FROM payroll_transactions 
+            WHERE staff_id = $1 
+            ORDER BY transaction_date DESC
+        """, staff_id)
+        return [dict(row) for row in rows]
+
+@router.post("/{staff_id}/payroll")
+async def create_payroll_transaction(
+    staff_id: UUID,
+    data: PayrollTransactionCreate,
+    pool: asyncpg.Pool = Depends(get_tenant_db_pool),
+    current_user: dict = Depends(get_current_school_user)
+):
+    """Record a salary payment or deduction"""
+    async with pool.acquire() as conn:
+        # Quick check staff exists
+        exists = await conn.fetchval("SELECT 1 FROM staff WHERE staff_id = $1", staff_id)
+        if not exists:
+             raise HTTPException(status_code=404, detail="Staff not found")
+
+        # Create Record
+        row = await conn.fetchrow("""
+            INSERT INTO payroll_transactions (staff_id, amount, transaction_date, type, description, payment_method)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+        """, staff_id, data.amount, data.transaction_date, data.type, data.description, data.payment_method)
+        
+        # Optional: Also record as Expense in Finance module
+        # We can implement a trigger or just dual-insert here if Finance module is strict.
+        # For now, let's keep them decoupled or simple. 
+        # Ideally, this SHOULD create an expense.
+        try:
+             await conn.execute("""
+                INSERT INTO expenses (category, amount, description, date, payment_method, reference_id)
+                VALUES ('Salary', $1, $2, $3, $4, $5)
+             """, data.amount, f"Payroll: {data.type} for Staff {staff_id}", data.transaction_date, data.payment_method, row['transaction_id'])
+        except Exception:
+             # Ignore expense creation failure if table doesn't exist (loose coupling)
+             pass
+
+        return dict(row)
