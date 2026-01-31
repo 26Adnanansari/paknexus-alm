@@ -339,6 +339,21 @@ async def create_payroll_transaction(
         if not exists:
              raise HTTPException(status_code=404, detail="Staff not found")
 
+        # Auto-init payroll table (Just in case GET wasn't called first)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS payroll_transactions (
+                transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                staff_id UUID REFERENCES staff(staff_id),
+                amount DECIMAL(10,2) NOT NULL,
+                transaction_date DATE NOT NULL,
+                type VARCHAR(20) DEFAULT 'salary',
+                description TEXT,
+                payment_method VARCHAR(20) DEFAULT 'cash',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_payroll_staff ON payroll_transactions(staff_id);
+        """)
+
         # Create Record
         row = await conn.fetchrow("""
             INSERT INTO payroll_transactions (staff_id, amount, transaction_date, type, description, payment_method)
