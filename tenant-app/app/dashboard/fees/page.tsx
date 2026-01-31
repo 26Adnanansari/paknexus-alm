@@ -8,6 +8,7 @@ import {
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import PageGuide from '@/components/common/PageGuide';
 
 interface FeeReport {
     total_expected: number;
@@ -68,6 +69,16 @@ export default function FeesDashboardPage() {
     return (
         <div className="min-h-screen bg-slate-50 p-6 md:p-10">
             <div className="max-w-7xl mx-auto space-y-6">
+                <PageGuide
+                    title="Fee Management Guide"
+                    description="Monitor and manage your school's financial health and fee collections."
+                    steps={[
+                        "Check 'Outstanding Report' to see who owes fees.",
+                        "Use 'Collect Fees' to record payments from students.",
+                        "Configure fee rules in 'Fee Structure'."
+                    ]}
+                />
+
                 {/* Header */}
                 <div>
                     <h1 className="text-4xl font-black text-slate-900 tracking-tighter flex items-center gap-3">

@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import PhotoUpload from '@/components/PhotoUpload';
+import PageGuide from '@/components/common/PageGuide';
 
 export default function StaffProfilePage({ params }: { params: { id: string } }) {
     const router = useRouter();
@@ -119,6 +120,15 @@ export default function StaffProfilePage({ params }: { params: { id: string } })
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-6">
+            <PageGuide
+                title={`${staff.full_name}'s Profile Guide`}
+                description="View and manage detailed information for this staff member."
+                steps={[
+                    "Review 'Overview' for personal and professional details.",
+                    "Check 'Assigned Classes' and 'Timetable' for schedule information.",
+                    "Use 'Payroll Info' to view payment history and record new salary payments."
+                ]}
+            />
             <button onClick={() => router.back()} className="flex items-center text-slate-500 hover:text-slate-800 transition-colors">
                 <ArrowLeft size={16} className="mr-2" /> Back to Staff Directory
             </button>

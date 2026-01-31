@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, GraduationCap, Loader2, Upload, Edit, Trash2, X, User } from 'lucide-react';
+import { Plus, Search, GraduationCap, Loader2, Upload, Edit, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BulkUploadModal from '@/components/BulkUploadModal';
 import ShareIDCardLink from '@/components/ShareIDCardLink';
@@ -12,6 +12,7 @@ import StudentCardMobile from '@/components/dashboard/students/student-card-mobi
 import StudentAvatar from '@/components/ui/student-avatar';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { toast } from 'sonner';
+import PageGuide from '@/components/common/PageGuide';
 
 interface Student {
     student_id: string;
@@ -179,6 +180,15 @@ export default function StudentsPage() {
 
     return (
         <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+            <PageGuide
+                title="Student Directory Guide"
+                description="Manage your student body records. Enroll new students, update profiles, and manage status."
+                steps={[
+                    "Use 'Enroll Student' to add a single new student record.",
+                    "Use 'Bulk Upload' to import students via Excel/CSV.",
+                    "Click on a student's name to view their full profile and history."
+                ]}
+            />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-16 md:top-0 z-20 bg-slate-50/95 backdrop-blur-sm py-2">
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-slate-900 tracking-tight">

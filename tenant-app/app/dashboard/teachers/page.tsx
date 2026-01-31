@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import PhotoUpload from '@/components/PhotoUpload';
 import IDCardPreview, { IDCardData } from '@/components/dashboard/id-cards/IDCardPreview';
 import { useBranding } from '@/context/branding-context';
+import PageGuide from '@/components/common/PageGuide';
 
 export default function StaffPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,6 +72,8 @@ export default function StaffPage() {
             setLoading(false);
         }
     };
+
+    const getStaffId = (staff: any) => staff.staff_id || staff.id || staff._id;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -134,7 +137,8 @@ export default function StaffPage() {
                 ...editingStaff,
                 salary_amount: editingStaff.salary_amount ? parseFloat(editingStaff.salary_amount) : null
             };
-            await api.put(`/staff/${editingStaff.staff_id}`, payload);
+            const staffId = getStaffId(editingStaff);
+            await api.put(`/staff/${staffId}`, payload);
             setIsEditOpen(false);
             fetchStaff();
             toast.success("Staff updated successfully");
@@ -180,7 +184,8 @@ export default function StaffPage() {
             }
 
             // 2. Fetch Staff ID Data
-            const resData = await api.get(`/staff/${staff.staff_id}/id-card-data`);
+            const staffId = getStaffId(staff);
+            const resData = await api.get(`/staff/${staffId}/id-card-data`);
             setIdCardData(resData.data);
         } catch (e) {
             console.error(e);
@@ -193,6 +198,16 @@ export default function StaffPage() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
+            <PageGuide
+                title="Staff Management Guide"
+                description="Manage your school's workforce efficiently. Use this directory to add new teachers, edit profiles, generate ID cards, and manage payroll."
+                steps={[
+                    "Click 'Add Staff' to register a new employee.",
+                    "Click on a staff member's name to view their full profile, attendance, and payroll.",
+                    "Use the 'ID Card' icon on any card to generate and print a professional ID card."
+                ]}
+            />
+
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold flex items-center gap-2 text-slate-900">
@@ -232,67 +247,70 @@ export default function StaffPage() {
                         <p className="text-slate-500">Add your first teacher or staff member to get started.</p>
                     </div>
                 ) : (
-                    staffList.map((staff) => (
-                        <div key={staff.staff_id} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-lg transition-all group relative">
-                            {/* Actions Overlay */}
-                            <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm p-1 rounded-lg border border-slate-100 shadow-sm z-10">
-                                <button onClick={(e) => { e.stopPropagation(); handleIDCardClick(staff); }} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Generate ID Card">
-                                    <CreditCard size={16} />
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleEditClick(staff); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
-                                    <Edit size={16} />
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDelete(staff.staff_id); }} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
+                    staffList.map((staff) => {
+                        const staffId = getStaffId(staff);
+                        return (
+                            <div key={staffId} className="bg-white p-6 rounded-xl border border-slate-200 hover:shadow-lg transition-all group relative">
+                                {/* Actions Overlay */}
+                                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 backdrop-blur-sm p-1 rounded-lg border border-slate-100 shadow-sm z-10">
+                                    <button onClick={(e) => { e.stopPropagation(); handleIDCardClick(staff); }} className="p-1.5 text-purple-600 hover:bg-purple-50 rounded" title="Generate ID Card">
+                                        <CreditCard size={16} />
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleEditClick(staff); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                                        <Edit size={16} />
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDelete(staffId); }} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
 
-                            <div className="flex items-start justify-between mb-4">
-                                {staff.photo_url ? (
-                                    <img
-                                        src={staff.photo_url}
-                                        alt={staff.full_name}
-                                        className="h-14 w-14 rounded-full object-cover border border-slate-200 shadow-sm"
-                                    />
-                                ) : (
-                                    <div className="h-14 w-14 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg border border-blue-100 shadow-sm">
-                                        {staff.full_name?.[0]}
+                                <div className="flex items-start justify-between mb-4">
+                                    {staff.photo_url ? (
+                                        <img
+                                            src={staff.photo_url}
+                                            alt={staff.full_name}
+                                            className="h-14 w-14 rounded-full object-cover border border-slate-200 shadow-sm"
+                                        />
+                                    ) : (
+                                        <div className="h-14 w-14 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg border border-blue-100 shadow-sm">
+                                            {staff.full_name?.[0]}
+                                        </div>
+                                    )}
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${staff.role === 'teacher' ? 'bg-indigo-50 text-indigo-700' :
+                                        staff.role === 'admin' ? 'bg-purple-50 text-purple-700' :
+                                            'bg-slate-100 text-slate-600'
+                                        }`}>
+                                        {staff.role}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
+                                        <Link href={`/dashboard/teachers/${staffId}`} className="hover:underline">
+                                            {staff.full_name}
+                                        </Link>
+                                    </h3>
+                                    <p className="text-sm text-slate-500 font-medium">{staff.designation || 'No Designation'}</p>
+                                    {staff.department && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><School size={12} /> {staff.department}</p>}
+                                </div>
+
+                                <div className="mt-6 space-y-2.5 pt-4 border-t border-slate-50">
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <Mail className="h-4 w-4 text-slate-400" />
+                                        <span className="truncate">{staff.email || '-'}</span>
                                     </div>
-                                )}
-                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${staff.role === 'teacher' ? 'bg-indigo-50 text-indigo-700' :
-                                    staff.role === 'admin' ? 'bg-purple-50 text-purple-700' :
-                                        'bg-slate-100 text-slate-600'
-                                    }`}>
-                                    {staff.role}
-                                </span>
-                            </div>
-
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-                                    <Link href={`/dashboard/teachers/${staff.staff_id}`} className="hover:underline">
-                                        {staff.full_name}
-                                    </Link>
-                                </h3>
-                                <p className="text-sm text-slate-500 font-medium">{staff.designation || 'No Designation'}</p>
-                                {staff.department && <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><School size={12} /> {staff.department}</p>}
-                            </div>
-
-                            <div className="mt-6 space-y-2.5 pt-4 border-t border-slate-50">
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Mail className="h-4 w-4 text-slate-400" />
-                                    <span className="truncate">{staff.email || '-'}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Phone className="h-4 w-4 text-slate-400" />
-                                    <span>{staff.phone || '-'}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <User className="h-4 w-4 text-slate-400" />
-                                    <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">{staff.employee_id}</span>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <Phone className="h-4 w-4 text-slate-400" />
+                                        <span>{staff.phone || '-'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <User className="h-4 w-4 text-slate-400" />
+                                        <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded">{staff.employee_id}</span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
